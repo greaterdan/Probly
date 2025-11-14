@@ -56,38 +56,38 @@ export const ActivePositions = ({ agents, selectedAgent, onAgentClick }: ActiveP
         return (
           <>
             <div className="flex flex-col">
-              <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
+              <div className="text-[9px] text-text-muted font-mono uppercase tracking-[0.08em] mb-0.5" style={{ fontWeight: 600 }}>
                 TOTAL P&L
               </div>
-              <div className={`text-xl font-bold ${totalPnL >= 0 ? 'text-trade-yes' : 'text-trade-no'}`} style={{ fontWeight: 700 }}>
+              <div className={`text-lg font-bold ${totalPnL >= 0 ? 'text-trade-yes' : 'text-trade-no'}`} style={{ fontWeight: 700 }}>
                 {totalPnL >= 0 ? '+' : ''}{totalPnL.toFixed(1)}%
               </div>
             </div>
 
             <div className="flex flex-col">
-              <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
+              <div className="text-[9px] text-text-muted font-mono uppercase tracking-[0.08em] mb-0.5" style={{ fontWeight: 600 }}>
                 MARKETS
               </div>
-              <div className="text-xl font-bold text-foreground" style={{ fontWeight: 700 }}>
+              <div className="text-lg font-bold text-foreground" style={{ fontWeight: 700 }}>
                 {totalMarkets}
               </div>
             </div>
 
             <div className="flex flex-col">
-              <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
+              <div className="text-[9px] text-text-muted font-mono uppercase tracking-[0.08em] mb-0.5" style={{ fontWeight: 600 }}>
                 WIN RATE
               </div>
-              <div className="text-xl font-bold text-terminal-accent" style={{ fontWeight: 700 }}>
+              <div className="text-lg font-bold text-terminal-accent" style={{ fontWeight: 700 }}>
                 {winRate.toFixed(0)}%
               </div>
             </div>
 
             <div className="flex flex-col">
-              <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
+              <div className="text-[9px] text-text-muted font-mono uppercase tracking-[0.08em] mb-0.5" style={{ fontWeight: 600 }}>
                 ACTIVE
               </div>
               <div className="flex items-center gap-2">
-                <div className="text-xl font-bold text-foreground" style={{ fontWeight: 700 }}>
+                <div className="text-lg font-bold text-foreground" style={{ fontWeight: 700 }}>
                   {activeAgents}/{agents.length}
                 </div>
                 {activeAgents > 0 && (
@@ -102,46 +102,46 @@ export const ActivePositions = ({ agents, selectedAgent, onAgentClick }: ActiveP
         return (
           <>
             <div className="flex flex-col">
-              <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
+              <div className="text-[9px] text-text-muted font-mono uppercase tracking-[0.08em] mb-0.5" style={{ fontWeight: 600 }}>
                 REALIZED
               </div>
-              <div className={`text-xl font-bold ${realizedPnL >= 0 ? 'text-trade-yes' : 'text-trade-no'}`} style={{ fontWeight: 700 }}>
+              <div className={`text-lg font-bold ${realizedPnL >= 0 ? 'text-trade-yes' : 'text-trade-no'}`} style={{ fontWeight: 700 }}>
                 {realizedPnL >= 0 ? '+' : ''}{realizedPnL.toFixed(1)}%
               </div>
             </div>
 
             <div className="flex flex-col">
-              <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
+              <div className="text-[9px] text-text-muted font-mono uppercase tracking-[0.08em] mb-0.5" style={{ fontWeight: 600 }}>
                 UNREALIZED
               </div>
-              <div className={`text-xl font-bold ${unrealizedPnL >= 0 ? 'text-trade-yes' : 'text-trade-no'}`} style={{ fontWeight: 700 }}>
+              <div className={`text-lg font-bold ${unrealizedPnL >= 0 ? 'text-trade-yes' : 'text-trade-no'}`} style={{ fontWeight: 700 }}>
                 {unrealizedPnL >= 0 ? '+' : ''}{unrealizedPnL.toFixed(1)}%
               </div>
             </div>
 
             <div className="flex flex-col">
-              <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
+              <div className="text-[9px] text-text-muted font-mono uppercase tracking-[0.08em] mb-0.5" style={{ fontWeight: 600 }}>
                 MAX DRAWDOWN
               </div>
-              <div className="text-xl font-bold text-trade-no" style={{ fontWeight: 700 }}>
+              <div className="text-lg font-bold text-trade-no" style={{ fontWeight: 700 }}>
                 {maxDrawdown.toFixed(1)}%
               </div>
             </div>
 
             <div className="flex flex-col">
-              <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
+              <div className="text-[9px] text-text-muted font-mono uppercase tracking-[0.08em] mb-0.5" style={{ fontWeight: 600 }}>
                 R/V RATIO
               </div>
-              <div className="text-xl font-bold text-terminal-accent" style={{ fontWeight: 700 }}>
+              <div className="text-lg font-bold text-terminal-accent" style={{ fontWeight: 700 }}>
                 {sharpeRatio.toFixed(1)}
               </div>
             </div>
 
             <div className="flex flex-col">
-              <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
+              <div className="text-[9px] text-text-muted font-mono uppercase tracking-[0.08em] mb-0.5" style={{ fontWeight: 600 }}>
                 AVG HOLD
               </div>
-              <div className="text-xl font-bold text-foreground" style={{ fontWeight: 700 }}>
+              <div className="text-lg font-bold text-foreground" style={{ fontWeight: 700 }}>
                 {avgHoldTime.toFixed(1)}d
               </div>
             </div>
@@ -152,37 +152,37 @@ export const ActivePositions = ({ agents, selectedAgent, onAgentClick }: ActiveP
         return (
           <>
             <div className="flex flex-col">
-              <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
+              <div className="text-[9px] text-text-muted font-mono uppercase tracking-[0.08em] mb-0.5" style={{ fontWeight: 600 }}>
                 CALIBRATION
               </div>
-              <div className="text-xl font-bold text-trade-yes" style={{ fontWeight: 700 }}>
+              <div className="text-lg font-bold text-trade-yes" style={{ fontWeight: 700 }}>
                 {calibrationScore.toFixed(2)}
               </div>
             </div>
 
             <div className="flex flex-col">
-              <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
+              <div className="text-[9px] text-text-muted font-mono uppercase tracking-[0.08em] mb-0.5" style={{ fontWeight: 600 }}>
                 BRIER SCORE
               </div>
-              <div className="text-xl font-bold text-terminal-accent" style={{ fontWeight: 700 }}>
+              <div className="text-lg font-bold text-terminal-accent" style={{ fontWeight: 700 }}>
                 {brierScore.toFixed(2)}
               </div>
             </div>
 
             <div className="flex flex-col">
-              <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
+              <div className="text-[9px] text-text-muted font-mono uppercase tracking-[0.08em] mb-0.5" style={{ fontWeight: 600 }}>
                 AVG EDGE
               </div>
-              <div className="text-xl font-bold text-trade-yes" style={{ fontWeight: 700 }}>
+              <div className="text-lg font-bold text-trade-yes" style={{ fontWeight: 700 }}>
                 +{avgEdge.toFixed(1)} pts
               </div>
             </div>
 
             <div className="flex flex-col">
-              <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
+              <div className="text-[9px] text-text-muted font-mono uppercase tracking-[0.08em] mb-0.5" style={{ fontWeight: 600 }}>
                 WIN RATE
               </div>
-              <div className="text-xl font-bold text-foreground" style={{ fontWeight: 700 }}>
+              <div className="text-lg font-bold text-foreground" style={{ fontWeight: 700 }}>
                 {winRate.toFixed(0)}%
               </div>
             </div>
@@ -193,37 +193,37 @@ export const ActivePositions = ({ agents, selectedAgent, onAgentClick }: ActiveP
         return (
           <>
             <div className="flex flex-col">
-              <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
+              <div className="text-[9px] text-text-muted font-mono uppercase tracking-[0.08em] mb-0.5" style={{ fontWeight: 600 }}>
                 TRADES/24H
               </div>
-              <div className="text-xl font-bold text-foreground" style={{ fontWeight: 700 }}>
+              <div className="text-lg font-bold text-foreground" style={{ fontWeight: 700 }}>
                 {tradeFrequency}
               </div>
             </div>
 
             <div className="flex flex-col">
-              <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
+              <div className="text-[9px] text-text-muted font-mono uppercase tracking-[0.08em] mb-0.5" style={{ fontWeight: 600 }}>
                 DIVERGENCE
               </div>
-              <div className="text-xl font-bold text-terminal-accent" style={{ fontWeight: 700 }}>
+              <div className="text-lg font-bold text-terminal-accent" style={{ fontWeight: 700 }}>
                 {divergenceIndex}%
               </div>
             </div>
 
             <div className="flex flex-col">
-              <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
+              <div className="text-[9px] text-text-muted font-mono uppercase tracking-[0.08em] mb-0.5" style={{ fontWeight: 600 }}>
                 CONSENSUS
               </div>
-              <div className="text-xl font-bold text-foreground" style={{ fontWeight: 700 }}>
+              <div className="text-lg font-bold text-foreground" style={{ fontWeight: 700 }}>
                 {consensusLevel}%
               </div>
             </div>
 
             <div className="flex flex-col">
-              <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
+              <div className="text-[9px] text-text-muted font-mono uppercase tracking-[0.08em] mb-0.5" style={{ fontWeight: 600 }}>
                 UTILIZATION
               </div>
-              <div className="text-xl font-bold text-trade-yes" style={{ fontWeight: 700 }}>
+              <div className="text-lg font-bold text-trade-yes" style={{ fontWeight: 700 }}>
                 {capitalUtilization}%
               </div>
             </div>
@@ -242,15 +242,15 @@ export const ActivePositions = ({ agents, selectedAgent, onAgentClick }: ActiveP
   };
 
   return (
-    <div className="h-24 bg-bg-card border-t border-border">
-      <div className="flex items-center h-full px-4 gap-4">
+    <div className="h-20 bg-bg-card border-t border-border">
+      <div className="flex items-center h-full px-3 gap-3">
         {/* AI Agents Section */}
-        <div className="flex items-center gap-3 flex-1">
+        <div className="flex items-center gap-2.5 flex-1">
           {agents.map((agent, index) => (
             <motion.button
               key={agent.id}
               onClick={() => onAgentClick(agent.id)}
-              className={`flex-1 max-w-[220px] h-16 p-3 flex items-center gap-3 border transition-colors ${
+              className={`flex-1 max-w-[200px] h-14 p-2.5 flex items-center gap-2.5 border transition-colors ${
                 selectedAgent === agent.id
                   ? 'border-terminal-accent bg-muted'
                   : 'border-border bg-bg-elevated hover:bg-muted'
@@ -263,7 +263,7 @@ export const ActivePositions = ({ agents, selectedAgent, onAgentClick }: ActiveP
             >
               {/* Agent Icon with Status */}
               <div className="relative">
-                <div className="text-2xl">{agent.emoji}</div>
+                <div className="text-xl">{agent.emoji}</div>
                 {agent.isActive && (
                   <motion.div
                     className="absolute -bottom-1 -right-1 w-2 h-2 rounded-full bg-trade-yes"
@@ -275,18 +275,18 @@ export const ActivePositions = ({ agents, selectedAgent, onAgentClick }: ActiveP
 
               {/* Info */}
               <div className="flex-1 min-w-0 text-left">
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-foreground" style={{ fontWeight: 500 }}>{agent.name}</span>
-                    <span className={`text-[11px] ${agent.isActive ? 'text-trade-yes' : 'text-text-muted'}`} style={{ fontWeight: 400 }}>
+                    <span className="text-[11px] font-mono text-foreground" style={{ fontWeight: 500 }}>{agent.name}</span>
+                    <span className={`text-[10px] ${agent.isActive ? 'text-trade-yes' : 'text-text-muted'}`} style={{ fontWeight: 400 }}>
                       {agent.isActive ? 'ACTIVE' : 'IDLE'}
                     </span>
                   </div>
-                  <span className={`text-sm ${agent.pnl >= 0 ? 'text-trade-yes' : 'text-trade-no'}`} style={{ fontWeight: 600 }}>
+                  <span className={`text-xs ${agent.pnl >= 0 ? 'text-trade-yes' : 'text-trade-no'}`} style={{ fontWeight: 600 }}>
                     {agent.pnl >= 0 ? '+' : ''}{agent.pnl.toFixed(1)}%
                   </span>
                 </div>
-                <div className="text-xs text-text-secondary truncate" style={{ fontWeight: 400 }}>
+                <div className="text-[11px] text-text-secondary truncate" style={{ fontWeight: 400 }}>
                   {agent.openMarkets} markets • {agent.lastTrade}
                 </div>
               </div>
@@ -295,20 +295,20 @@ export const ActivePositions = ({ agents, selectedAgent, onAgentClick }: ActiveP
         </div>
 
         {/* Vertical Separator */}
-        <div className="h-12 w-px bg-border flex-shrink-0" />
+        <div className="h-10 w-px bg-border flex-shrink-0" />
 
         {/* Metrics Section - Clickable */}
         <motion.button
           onClick={cycleMetricView}
-          className="flex items-center gap-6 flex-shrink-0 px-4 py-2 hover:bg-muted/30 transition-colors rounded border border-transparent hover:border-border group"
+          className="flex items-center gap-5 flex-shrink-0 px-3 py-2 hover:bg-muted/30 transition-colors rounded border border-transparent hover:border-border group"
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
         >
           {renderMetrics()}
           
           {/* View Indicator */}
-          <div className="ml-4 flex flex-col items-center gap-1">
-            <div className="text-[9px] text-terminal-accent font-mono uppercase tracking-wider opacity-60 group-hover:opacity-100 transition-opacity">
+          <div className="ml-3 flex flex-col items-center gap-0.5">
+            <div className="text-[8px] text-terminal-accent font-mono uppercase tracking-wider opacity-60 group-hover:opacity-100 transition-opacity">
               {getViewLabel()}
             </div>
             <div className="flex gap-1">

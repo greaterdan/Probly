@@ -79,7 +79,7 @@ export const ActivePositions = ({ agents, selectedAgent, onAgentClick }: ActiveP
       </div>
 
       {/* Right Half: Metrics (under performance chart) */}
-      <div className="w-1/2 flex items-center px-6">
+      <div className="w-1/2 h-full flex items-center px-6">
         <div className="flex items-center gap-8 w-full justify-center">
           {/* Total PnL */}
           <div className="flex flex-col">

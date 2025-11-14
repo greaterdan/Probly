@@ -14,17 +14,17 @@ export default {
     },
     extend: {
       fontFamily: {
-        mono: ['"IBM Plex Mono"', 'monospace'],
-        display: ['"Orbitron"', 'sans-serif'],
+        mono: ['"Courier New"', 'Consolas', 'monospace'],
+        sans: ['Segoe UI', 'Tahoma', 'MS Sans Serif', 'system-ui', '-apple-system', 'sans-serif'],
       },
       colors: {
         'trade-yes': 'hsl(var(--trade-yes))',
         'trade-no': 'hsl(var(--trade-no))',
         'trade-neutral': 'hsl(var(--trade-neutral))',
-        'neural-glow': 'hsl(var(--neural-glow))',
         'terminal-accent': 'hsl(var(--terminal-accent))',
         'terminal-red': 'hsl(var(--terminal-red))',
         'terminal-blue': 'hsl(var(--terminal-blue))',
+        'terminal-gray': 'hsl(var(--terminal-gray))',
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

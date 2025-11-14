@@ -8,58 +8,49 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Dark terminal theme */
-    --background: 0 0% 5%;
-    --foreground: 0 0% 88%;
+    /* Professional Quant Terminal Theme - Minimal Dark */
+    --background: 220 25% 4%;
+    --foreground: 210 8% 88%;
 
-    --card: 0 0% 8%;
-    --card-foreground: 0 0% 88%;
+    --card: 220 20% 6%;
+    --card-foreground: 210 8% 88%;
 
-    --popover: 0 0% 8%;
-    --popover-foreground: 0 0% 88%;
+    --popover: 220 20% 6%;
+    --popover-foreground: 210 8% 88%;
 
-    --primary: 150 80% 65%;
-    --primary-foreground: 0 0% 5%;
+    --primary: 210 6% 75%;
+    --primary-foreground: 220 20% 8%;
 
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 88%;
+    --secondary: 220 15% 10%;
+    --secondary-foreground: 210 8% 80%;
 
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 50%;
+    --muted: 220 12% 15%;
+    --muted-foreground: 210 6% 55%;
 
-    --accent: 150 80% 65%;
-    --accent-foreground: 0 0% 5%;
+    --accent: 142 28% 48%;
+    --accent-foreground: 220 20% 8%;
 
-    --destructive: 0 75% 58%;
-    --destructive-foreground: 0 0% 88%;
+    --destructive: 0 40% 52%;
+    --destructive-foreground: 210 8% 88%;
 
-    --border: 0 0% 15%;
-    --input: 0 0% 12%;
-    --ring: 150 80% 65%;
+    --border: 220 15% 18%;
+    --input: 220 15% 18%;
+    --ring: 142 28% 48%;
 
-    --radius: 0.75rem;
+    --radius: 0.125rem;
+
+    /* Muted terminal colors - professional palette */
+    --trade-yes: 142 28% 48%;
+    --trade-no: 0 40% 52%;
+    --trade-neutral: 210 6% 50%;
     
-    /* Terminal colors */
-    --trade-yes: 150 80% 65%;
-    --trade-no: 0 75% 58%;
-    --trade-neutral: 200 80% 60%;
-    --neural-glow: 150 100% 75%;
-    --terminal-accent: 150 80% 65%;
-    --terminal-red: 0 75% 58%;
-    --terminal-blue: 200 80% 60%;
-    
-    /* Neon glows */
-    --glow-green: 0 0 20px rgba(133, 238, 170, 0.6), 0 0 40px rgba(133, 238, 170, 0.3);
-    --glow-red: 0 0 20px rgba(239, 68, 68, 0.6), 0 0 40px rgba(239, 68, 68, 0.3);
-    --glow-blue: 0 0 20px rgba(56, 189, 248, 0.6), 0 0 40px rgba(56, 189, 248, 0.3);
-    
-    --shadow-soft: 0 4px 30px rgba(0, 0, 0, 0.5);
-    --shadow-glow-green: 0 0 30px rgba(133, 238, 170, 0.4);
-    --shadow-glow-red: 0 0 30px rgba(239, 68, 68, 0.4);
-    --shadow-glow-blue: 0 0 30px rgba(56, 189, 248, 0.4);
-    
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    --terminal-accent: 142 28% 48%;
+    --terminal-red: 0 40% 52%;
+    --terminal-blue: 210 45% 55%;
+    --terminal-gray: 220 8% 35%;
+
+    /* Minimal shadows */
+    --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.4);
 
     --sidebar-background: 0 0% 98%;
 
@@ -126,23 +117,26 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground font-mono antialiased;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Segoe UI', Tahoma, 'MS Sans Serif', system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.01em;
   }
 }
 
 @layer utilities {
-  .pulse-glow-green {
-    animation: pulse-glow-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  @keyframes marquee {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
   }
-  
-  .pulse-glow-red {
-    animation: pulse-glow-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  .animate-marquee {
+    animation: marquee 30s linear infinite;
   }
-  
-  .pulse-glow-blue {
-    animation: pulse-glow-blue 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-  
+
   @keyframes pulse-glow-green {
     0%, 100% {
       opacity: 1;

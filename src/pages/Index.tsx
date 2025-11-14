@@ -93,11 +93,12 @@ const Index = () => {
   // Simulate AI trading activity
   useEffect(() => {
     const interval = setInterval(() => {
-      const randomAgent = mockAgents[Math.floor(Math.random() * mockAgents.length)];
+      const randomAgentIndex = Math.floor(Math.random() * mockAgents.length);
+      const randomAgent = mockAgents[randomAgentIndex];
       
-      setAgents(prev => prev.map(agent => ({
-        ...agent,
-        isActive: agent.id === randomAgent.id
+      setAgents(prev => prev.map((agent, idx) => ({
+        ...mockAgents[idx], // Preserve all properties from mockAgents
+        isActive: idx === randomAgentIndex
       })));
 
       // Trigger connection animation (from bottom to node)
@@ -112,8 +113,8 @@ const Index = () => {
 
       setTimeout(() => {
         setActiveConnection(null);
-        setAgents(prev => prev.map(agent => ({
-          ...agent,
+        setAgents(prev => prev.map((agent, idx) => ({
+          ...mockAgents[idx], // Preserve all properties
           isActive: false
         })));
       }, 1500);

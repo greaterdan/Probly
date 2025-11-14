@@ -3,7 +3,6 @@ import { PredictionNode, PredictionNodeData } from "@/components/PredictionNode"
 import { PerformanceChart } from "@/components/PerformanceChart";
 import { SystemStatusBar } from "@/components/SystemStatusBar";
 import { ActivePositions } from "@/components/ActivePositions";
-import { AgentStatusList } from "@/components/AgentStatusList";
 import { ConnectionLine } from "@/components/ConnectionLine";
 
 interface Agent {
@@ -11,13 +10,16 @@ interface Agent {
   name: string;
   emoji: string;
   isActive: boolean;
+  pnl: number;
+  openMarkets: number;
+  lastTrade: string;
 }
 
 const mockAgents: Agent[] = [
-  { id: "grok", name: "GROK", emoji: "🤖", isActive: false },
-  { id: "openai", name: "OPENAI", emoji: "🧠", isActive: true },
-  { id: "deepseek", name: "DEEPSEEK", emoji: "🔮", isActive: false },
-  { id: "gemini", name: "GEMINI", emoji: "♊", isActive: false },
+  { id: "grok", name: "GROK", emoji: "🤖", isActive: false, pnl: 42.5, openMarkets: 12, lastTrade: "YES on Trump 2024 @ $0.67" },
+  { id: "openai", name: "OPENAI", emoji: "🧠", isActive: true, pnl: 68.3, openMarkets: 15, lastTrade: "NO on Thunderbolts @ $0.004" },
+  { id: "deepseek", name: "DEEPSEEK", emoji: "🔮", isActive: false, pnl: -12.8, openMarkets: 8, lastTrade: "YES on ETH $3,500 @ $0.72" },
+  { id: "gemini", name: "GEMINI", emoji: "♊", isActive: false, pnl: 91.2, openMarkets: 18, lastTrade: "YES on SBF >20yrs @ $0.88" },
 ];
 
 const mockPredictions: PredictionNodeData[] = [
@@ -98,12 +100,12 @@ const Index = () => {
         isActive: agent.id === randomAgent.id
       })));
 
-      // Trigger connection animation
+      // Trigger connection animation (from bottom to node)
       const agentIndex = mockAgents.findIndex(a => a.id === randomAgent.id);
       const randomNode = Math.floor(Math.random() * mockPredictions.length);
       
       setActiveConnection({
-        start: { x: 150, y: window.innerHeight - 160 - (agentIndex * 70) },
+        start: { x: 150 + (agentIndex * 280), y: window.innerHeight - 50 },
         end: { x: 200 + (randomNode % 3) * 280, y: 120 + Math.floor(randomNode / 3) * 200 },
         agentId: randomAgent.id
       });
@@ -177,13 +179,6 @@ const Index = () => {
             ))}
           </div>
 
-          {/* Agent Status List */}
-          <AgentStatusList
-            agents={agents}
-            selectedAgent={selectedAgent}
-            onAgentClick={handleAgentClick}
-          />
-
           {/* Active Connection Line */}
           {activeConnection && (
             <ConnectionLine
@@ -200,7 +195,11 @@ const Index = () => {
       </div>
 
       {/* Bottom Active Positions */}
-      <ActivePositions />
+      <ActivePositions 
+        agents={agents}
+        selectedAgent={selectedAgent}
+        onAgentClick={handleAgentClick}
+      />
     </div>
   );
 };

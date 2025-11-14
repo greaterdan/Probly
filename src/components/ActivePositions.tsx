@@ -25,10 +25,10 @@ export const ActivePositions = ({ agents, selectedAgent, onAgentClick }: ActiveP
   const winRate = agents.length > 0 ? (profitableAgents / agents.length) * 100 : 0;
 
   return (
-    <div className="h-24 bg-bg-card border-t border-border">
-      <div className="flex items-center h-full">
-        {/* AI Agents Section */}
-        <div className="flex items-center gap-3 px-4 flex-1 overflow-x-auto">
+    <div className="h-24 bg-bg-card border-t border-border flex">
+      {/* Left Half: AI Agents (under bubble maps) */}
+      <div className="w-1/2 border-r border-border">
+        <div className="flex items-center gap-3 px-4 h-full overflow-x-auto">
           {agents.map((agent, index) => (
           <motion.button
             key={agent.id}
@@ -76,11 +76,13 @@ export const ActivePositions = ({ agents, selectedAgent, onAgentClick }: ActiveP
           </motion.button>
         ))}
         </div>
+      </div>
 
-        {/* Metrics Section - Integrated */}
-        <div className="flex items-center gap-6 px-6 border-l border-border">
+      {/* Right Half: Metrics (under performance chart) */}
+      <div className="w-1/2 px-6 h-full flex items-center">
+        <div className="grid grid-cols-4 gap-6 w-full">
           {/* Total PnL */}
-          <div className="flex flex-col min-w-32">
+          <div className="flex flex-col">
             <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
               TOTAL P&L
             </div>
@@ -90,7 +92,7 @@ export const ActivePositions = ({ agents, selectedAgent, onAgentClick }: ActiveP
           </div>
 
           {/* Total Markets */}
-          <div className="flex flex-col min-w-28">
+          <div className="flex flex-col">
             <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
               MARKETS
             </div>
@@ -100,7 +102,7 @@ export const ActivePositions = ({ agents, selectedAgent, onAgentClick }: ActiveP
           </div>
 
           {/* Win Rate */}
-          <div className="flex flex-col min-w-28">
+          <div className="flex flex-col">
             <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
               WIN RATE
             </div>
@@ -110,7 +112,7 @@ export const ActivePositions = ({ agents, selectedAgent, onAgentClick }: ActiveP
           </div>
 
           {/* Active Agents */}
-          <div className="flex flex-col min-w-24">
+          <div className="flex flex-col">
             <div className="text-[10px] text-text-muted font-mono uppercase tracking-[0.08em] mb-1" style={{ fontWeight: 600 }}>
               ACTIVE
             </div>

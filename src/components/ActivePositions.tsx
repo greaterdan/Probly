@@ -245,12 +245,12 @@ export const ActivePositions = ({ agents, selectedAgent, onAgentClick }: ActiveP
     <div className="h-16 bg-bg-card border-t border-border">
       <div className="flex items-center h-full px-2.5 gap-2.5">
         {/* AI Agents Section */}
-        <div className="flex items-center gap-2.5 flex-1">
+        <div className="flex items-center gap-2 flex-1 overflow-x-auto">
           {agents.map((agent, index) => (
             <motion.button
               key={agent.id}
               onClick={() => onAgentClick(agent.id)}
-              className={`flex-1 max-w-[150px] h-12 p-2 flex items-center gap-2 border transition-colors ${
+              className={`flex-shrink-0 w-[140px] h-12 p-2 flex items-center gap-2 border transition-colors ${
                 selectedAgent === agent.id
                   ? 'border-terminal-accent bg-muted'
                   : 'border-border bg-bg-elevated hover:bg-muted'

@@ -5,6 +5,8 @@ import { SystemStatusBar } from "@/components/SystemStatusBar";
 import { ActivePositions } from "@/components/ActivePositions";
 import { ConnectionLine } from "@/components/ConnectionLine";
 import { TradesPanel } from "@/components/TradesPanel";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 
 interface Agent {
   id: string;
@@ -96,6 +98,7 @@ const Index = () => {
   const [panPosition, setPanPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [selectedCategory, setSelectedCategory] = useState<string>("All Markets");
 
   // Simulate AI trading activity
   useEffect(() => {
@@ -178,12 +181,37 @@ const Index = () => {
     setIsDragging(false);
   };
 
-  const filteredPredictions = selectedAgent
-    ? mockPredictions.filter(p => {
-        const agent = mockAgents.find(a => a.id === selectedAgent);
-        return agent && p.agentName === agent.name;
-      })
-    : mockPredictions;
+  const marketCategories = [
+    "All Markets",
+    "Politics",
+    "Sports", 
+    "Finance",
+    "Crypto",
+    "Entertainment",
+    "Technology",
+    "World Events"
+  ];
+
+  const getCategoryForPrediction = (question: string) => {
+    const q = question.toLowerCase();
+    if (q.includes("trump") || q.includes("election") || q.includes("sbf") || q.includes("prison")) return "Politics";
+    if (q.includes("movie") || q.includes("thunderbolts")) return "Entertainment";
+    if (q.includes("eth") || q.includes("crypto") || q.includes("bitcoin")) return "Crypto";
+    if (q.includes("ai") || q.includes("intelligence")) return "Technology";
+    return "World Events";
+  };
+
+  const filteredPredictions = mockPredictions.filter(p => {
+    const agentMatch = selectedAgent 
+      ? p.agentName === mockAgents.find(a => a.id === selectedAgent)?.name
+      : true;
+    
+    const categoryMatch = selectedCategory === "All Markets"
+      ? true
+      : getCategoryForPrediction(p.question) === selectedCategory;
+    
+    return agentMatch && categoryMatch;
+  });
 
   const nodePositions = [
     { x: 50, y: 80 },
@@ -201,55 +229,85 @@ const Index = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* LEFT: Prediction Nodes */}
-        <div 
-          className="w-1/2 relative border-r border-border overflow-hidden"
-          onWheel={handleWheel}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseLeave}
-          style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
-        >
-          {/* Subtle grid background */}
-          <div 
-            className="absolute inset-0 opacity-5"
-            style={{
-              backgroundImage: `
-                linear-gradient(hsl(var(--border)) 1px, transparent 1px),
-                linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px)
-              `,
-              backgroundSize: '40px 40px',
-            }}
-          />
-
-          {/* Prediction Nodes with Zoom */}
-          <div 
-            className="relative h-full origin-center"
-            style={{ 
-              transform: `scale(${zoomLevel}) translate(${panPosition.x / zoomLevel}px, ${panPosition.y / zoomLevel}px)`,
-              pointerEvents: isDragging ? 'none' : 'auto',
-              transition: isDragging ? 'none' : 'transform 0.2s ease-out',
-            }}
-          >
-            {filteredPredictions.map((prediction, index) => (
-              <PredictionNode
-                key={prediction.id}
-                data={prediction}
-                position={nodePositions[index]}
-                isHighlighted={selectedNode === prediction.id || (selectedAgent ? prediction.agentName === mockAgents.find(a => a.id === selectedAgent)?.name : false)}
-                onClick={() => handleNodeClick(prediction.id)}
-                onShowTrades={() => handleShowTrades(prediction)}
-              />
-            ))}
+        <div className="w-1/2 relative border-r border-border overflow-hidden flex flex-col">
+          {/* Market Category Dropdown */}
+          <div className="px-6 py-3 border-b border-border flex items-center justify-between bg-card/50 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-mono text-muted-foreground">DASHBOARD</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-md transition-colors border border-border bg-background">
+                  {selectedCategory}
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48 bg-background border-border">
+                  {marketCategories.map((category) => (
+                    <DropdownMenuItem
+                      key={category}
+                      onClick={() => setSelectedCategory(category)}
+                      className={`cursor-pointer ${selectedCategory === category ? 'bg-muted text-primary font-medium' : ''}`}
+                    >
+                      {category}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            <span className="text-xs text-muted-foreground font-mono">
+              {filteredPredictions.length} {filteredPredictions.length === 1 ? 'Market' : 'Markets'}
+            </span>
           </div>
 
-          {/* Active Connection Line */}
-          {activeConnection && (
-            <ConnectionLine
-              startPos={activeConnection.start}
-              endPos={activeConnection.end}
+          {/* Prediction Map Container */}
+          <div 
+            className="flex-1 relative overflow-hidden"
+            onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+            style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+          >
+            {/* Subtle grid background */}
+            <div 
+              className="absolute inset-0 opacity-5"
+              style={{
+                backgroundImage: `
+                  linear-gradient(hsl(var(--border)) 1px, transparent 1px),
+                  linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px)
+                `,
+                backgroundSize: '40px 40px',
+              }}
             />
-          )}
+
+            {/* Prediction Nodes with Zoom */}
+            <div 
+              className="relative h-full origin-center"
+              style={{ 
+                transform: `scale(${zoomLevel}) translate(${panPosition.x / zoomLevel}px, ${panPosition.y / zoomLevel}px)`,
+                pointerEvents: isDragging ? 'none' : 'auto',
+                transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+              }}
+            >
+              {filteredPredictions.map((prediction, index) => (
+                <PredictionNode
+                  key={prediction.id}
+                  data={prediction}
+                  position={nodePositions[index]}
+                  isHighlighted={selectedNode === prediction.id || (selectedAgent ? prediction.agentName === mockAgents.find(a => a.id === selectedAgent)?.name : false)}
+                  onClick={() => handleNodeClick(prediction.id)}
+                  onShowTrades={() => handleShowTrades(prediction)}
+                />
+              ))}
+            </div>
+
+            {/* Active Connection Line */}
+            {activeConnection && (
+              <ConnectionLine
+                startPos={activeConnection.start}
+                endPos={activeConnection.end}
+              />
+            )}
+          </div>
         </div>
 
         {/* RIGHT: Performance Chart */}

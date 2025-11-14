@@ -22,10 +22,10 @@ const mockChartData: ChartDataPoint[] = [
 ];
 
 const agents = [
-  { id: "GROK", name: "GROK", color: "#9ca3af" },
-  { id: "OPENAI", name: "OPENAI", color: "#6b9e7d" },
-  { id: "DEEPSEEK", name: "DEEPSEEK", color: "#8b91a8" },
-  { id: "GEMINI", name: "GEMINI", color: "#9d8b6b" },
+  { id: "GROK", name: "GROK", color: "#F5F7FB" },       // off-white
+  { id: "OPENAI", name: "OPENAI", color: "#8EE2A3" },   // muted green (accent-yes at 60%)
+  { id: "DEEPSEEK", name: "DEEPSEEK", color: "#7DA6FF" }, // muted blue (accent-neutral at 70%)
+  { id: "GEMINI", name: "GEMINI", color: "#F3B27C" },   // muted orange at 70%
 ];
 
 export const PerformanceChart = () => {
@@ -35,13 +35,13 @@ export const PerformanceChart = () => {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-card border border-border p-2 text-xs">
-          <div className="text-muted-foreground mb-1">{payload[0].payload.time}</div>
+        <div className="bg-bg-card border border-border p-3 text-xs shadow-xl">
+          <div className="text-text-secondary mb-2 font-medium">{payload[0].payload.time}</div>
           {payload.map((entry: any) => (
-            <div key={entry.name} className="flex items-center gap-2">
+            <div key={entry.name} className="flex items-center gap-2 mb-1">
               <div className="w-2 h-2" style={{ backgroundColor: entry.color }} />
-              <span className="font-mono">{entry.name}:</span>
-              <span className="font-bold">${entry.value.toFixed(0)}</span>
+              <span className="font-mono text-text-secondary">{entry.name}:</span>
+              <span className="font-semibold text-foreground">${entry.value.toFixed(0)}</span>
             </div>
           ))}
         </div>
@@ -51,9 +51,9 @@ export const PerformanceChart = () => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-card border border-border">
+    <div className="h-full flex flex-col bg-bg-elevated border border-border">
       {/* Chart Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-bg-elevated">
         <div className="text-xs text-terminal-accent font-mono">&gt; PERFORMANCE_INDEX</div>
         <div className="flex gap-2">
           {/* View Mode Toggle */}
@@ -107,26 +107,20 @@ export const PerformanceChart = () => {
       {viewMode === "chart" ? (
         <>
           {/* Chart Area */}
-          <div className="flex-1 p-4">
+          <div className="flex-1 p-4" style={{ background: 'linear-gradient(180deg, hsl(var(--bg-elevated)) 0%, hsl(var(--background)) 100%)' }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={mockChartData}>
-            <defs>
-              <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="rgba(15, 23, 42, 0.8)" />
-                <stop offset="100%" stopColor="rgba(15, 23, 42, 0.4)" />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--grid-lines))" vertical={false} />
             <XAxis 
               dataKey="time" 
-              stroke="#475569"
-              tick={{ fill: '#64748b', fontSize: 11 }}
-              axisLine={{ stroke: '#1e293b' }}
+              stroke="hsl(var(--text-muted))"
+              tick={{ fill: 'hsl(var(--text-muted))', fontSize: 11 }}
+              axisLine={{ stroke: 'hsl(var(--grid-lines))' }}
             />
             <YAxis 
-              stroke="#475569"
-              tick={{ fill: '#64748b', fontSize: 11 }}
-              axisLine={{ stroke: '#1e293b' }}
+              stroke="hsl(var(--text-muted))"
+              tick={{ fill: 'hsl(var(--text-muted))', fontSize: 11 }}
+              axisLine={{ stroke: 'hsl(var(--grid-lines))' }}
               tickFormatter={(value) => `$${value}`}
             />
             <Tooltip content={<CustomTooltip />} />
@@ -136,7 +130,7 @@ export const PerformanceChart = () => {
                 type="monotone"
                 dataKey={agent.id}
                 stroke={agent.color}
-                strokeWidth={selectedAgent === agent.id ? 3 : selectedAgent === null ? 2 : 1}
+                strokeWidth={selectedAgent === agent.id ? 2.5 : selectedAgent === null ? 1.5 : 1}
                 opacity={selectedAgent === agent.id || selectedAgent === null ? 1 : 0.2}
                 dot={false}
                 activeDot={{ r: 4, strokeWidth: 0 }}
@@ -147,14 +141,14 @@ export const PerformanceChart = () => {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 px-4 py-2 border-t border-border text-xs">
+        <div className="flex items-center gap-4 px-4 py-2 border-t border-border text-xs bg-bg-elevated">
         {agents.map((agent) => {
           const latestValue = mockChartData[mockChartData.length - 1][agent.id as keyof ChartDataPoint];
           return (
             <div key={agent.id} className="flex items-center gap-2">
               <div className="w-3 h-px" style={{ backgroundColor: agent.color }} />
-              <span className="font-mono text-muted-foreground">{agent.name}</span>
-              <span className="font-bold">${latestValue}</span>
+              <span className="font-mono text-text-secondary">{agent.name}</span>
+              <span className="font-semibold text-foreground">${latestValue}</span>
             </div>
             );
           })}

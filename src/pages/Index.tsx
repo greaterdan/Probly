@@ -229,9 +229,9 @@ const Index = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* LEFT: Prediction Nodes */}
-        <div className="w-1/2 relative border-r border-border overflow-hidden flex flex-col">
+        <div className="w-1/2 relative border-r border-border overflow-hidden flex flex-col bg-background">
           {/* Market Category Dropdown */}
-          <div className="px-4 py-2 border-b border-border flex items-center justify-between bg-card">
+          <div className="px-4 py-2 border-b border-border flex items-center justify-between bg-bg-elevated">
             <div className="flex items-center gap-3">
               <span className="text-xs text-terminal-accent font-mono">&gt; DASHBOARD</span>
               <DropdownMenu>

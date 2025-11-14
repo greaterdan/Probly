@@ -18,16 +18,16 @@ interface ActivePositionsProps {
 
 export const ActivePositions = ({ agents, selectedAgent, onAgentClick }: ActivePositionsProps) => {
   return (
-    <div className="h-24 bg-card border-t border-border">
+    <div className="h-24 bg-bg-card border-t border-border">
       <div className="flex items-center gap-3 px-4 h-full overflow-x-auto">
         {agents.map((agent, index) => (
           <motion.button
             key={agent.id}
             onClick={() => onAgentClick(agent.id)}
-            className={`min-w-64 h-16 p-2 flex items-center gap-3 border transition-colors ${
+            className={`min-w-64 h-16 p-3 flex items-center gap-3 border transition-colors ${
               selectedAgent === agent.id
                 ? 'border-terminal-accent bg-muted'
-                : 'border-border bg-secondary hover:bg-muted'
+                : 'border-border bg-bg-elevated hover:bg-muted'
             }`}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -51,16 +51,16 @@ export const ActivePositions = ({ agents, selectedAgent, onAgentClick }: ActiveP
             <div className="flex-1 min-w-0 text-left">
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-foreground">{agent.name}</span>
-                  <span className={`text-xs ${agent.isActive ? 'text-trade-yes' : 'text-muted-foreground'}`}>
+                  <span className="text-xs font-mono text-foreground" style={{ fontWeight: 500 }}>{agent.name}</span>
+                  <span className={`text-[11px] ${agent.isActive ? 'text-trade-yes' : 'text-text-muted'}`} style={{ fontWeight: 400 }}>
                     {agent.isActive ? 'ACTIVE' : 'IDLE'}
                   </span>
                 </div>
-                <span className={`text-sm font-bold ${agent.pnl >= 0 ? 'text-trade-yes' : 'text-trade-no'}`}>
+                <span className={`text-sm ${agent.pnl >= 0 ? 'text-trade-yes' : 'text-trade-no'}`} style={{ fontWeight: 600 }}>
                   {agent.pnl >= 0 ? '+' : ''}{agent.pnl.toFixed(1)}%
                 </span>
               </div>
-              <div className="text-xs text-muted-foreground truncate">
+              <div className="text-xs text-text-secondary truncate" style={{ fontWeight: 400 }}>
                 {agent.openMarkets} markets • {agent.lastTrade}
               </div>
             </div>

@@ -15,12 +15,20 @@ export default {
     extend: {
       fontFamily: {
         mono: ['"Courier New"', 'Consolas', 'monospace'],
-        sans: ['Segoe UI', 'Tahoma', 'MS Sans Serif', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
       },
       colors: {
+        'bg-elevated': 'hsl(var(--bg-elevated))',
+        'bg-card': 'hsl(var(--bg-card))',
+        'grid-lines': 'hsl(var(--grid-lines))',
+        'text-secondary': 'hsl(var(--text-secondary))',
+        'text-muted': 'hsl(var(--text-muted))',
         'trade-yes': 'hsl(var(--trade-yes))',
+        'trade-yes-soft': 'hsl(var(--trade-yes-soft) / 0.16)',
         'trade-no': 'hsl(var(--trade-no))',
+        'trade-no-soft': 'hsl(var(--trade-no-soft) / 0.16)',
         'trade-neutral': 'hsl(var(--trade-neutral))',
+        'trade-neutral-soft': 'hsl(var(--trade-neutral-soft) / 0.16)',
         'terminal-accent': 'hsl(var(--terminal-accent))',
         'terminal-red': 'hsl(var(--terminal-red))',
         'terminal-blue': 'hsl(var(--terminal-blue))',

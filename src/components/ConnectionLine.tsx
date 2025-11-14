@@ -6,7 +6,7 @@ interface ConnectionLineProps {
   color?: string;
 }
 
-export const ConnectionLine = ({ startPos, endPos, color = "#6b9e7d" }: ConnectionLineProps) => {
+export const ConnectionLine = ({ startPos, endPos, color = "hsl(220, 78%, 72%)" }: ConnectionLineProps) => {
   return (
     <svg className="fixed inset-0 pointer-events-none z-10" style={{ width: '100%', height: '100%' }}>
       <motion.line
@@ -24,10 +24,10 @@ export const ConnectionLine = ({ startPos, endPos, color = "#6b9e7d" }: Connecti
       <motion.circle
         cx={endPos.x}
         cy={endPos.y}
-        r="3"
+        r="2"
         fill={color}
         initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: [0, 1.5, 1], opacity: [0, 1, 0] }}
+        animate={{ scale: [0, 1.2, 0.8], opacity: [0, 0.8, 0] }}
         transition={{ duration: 1.2, ease: "easeOut" }}
       />
     </svg>

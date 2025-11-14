@@ -48,32 +48,49 @@ export const PredictionNode = ({ data, position, isHighlighted, onClick, onShowT
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* The actual circular bubble */}
-        <div className={`relative w-56 h-56 rounded-full bg-card border-2 ${borderColor} p-4 flex flex-col items-center justify-center text-center ${isHighlighted ? 'opacity-100' : 'opacity-90'}`}>
+        <div 
+          className={`relative w-56 h-56 rounded-full bg-bg-elevated border ${borderColor} p-4 flex flex-col items-center justify-center text-center shadow-xl`}
+          style={{
+            borderWidth: '1px',
+            boxShadow: data.position === "YES" 
+              ? '0 0 0 1px hsl(var(--trade-yes) / 0.7), inset 0 0 60px hsl(var(--trade-yes) / 0.08)'
+              : data.position === "NO"
+              ? '0 0 0 1px hsl(var(--trade-no) / 0.7), inset 0 0 60px hsl(var(--trade-no) / 0.08)'
+              : '0 0 0 1px hsl(var(--border))'
+          }}
+        >
           {/* Probability */}
-          <div className={`text-4xl font-bold ${accentColor} mb-1`}>
+          <div className={`text-5xl font-bold ${accentColor} mb-2`} style={{ fontWeight: 700 }}>
             {data.probability}%
           </div>
           
           {/* Position Tag */}
-          <div className={`text-xs px-3 py-1 border ${borderColor} ${accentColor} font-mono rounded-full mb-2`}>
+          <div 
+            className={`text-[11px] px-3 py-1 ${accentColor} font-mono rounded-full mb-3`}
+            style={{
+              backgroundColor: data.position === "YES" 
+                ? 'hsl(var(--trade-yes-soft) / 0.16)' 
+                : 'hsl(var(--trade-no-soft) / 0.16)'
+            }}
+          >
             {data.position}
           </div>
 
           {/* Market Title */}
-          <div className="text-xs text-foreground mb-2 leading-tight font-medium px-2">
+          <div className="text-[13px] text-text-secondary mb-3 leading-[1.4] px-2" style={{ fontWeight: 400 }}>
             {data.question.length > 60 ? data.question.substring(0, 60) + '...' : data.question}
           </div>
 
           {/* Agent */}
-          <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-            <span>{data.agentEmoji}</span>
+          <div className="flex items-center gap-1.5 text-xs text-text-muted mb-2">
+            <span className="text-trade-neutral">{data.agentEmoji}</span>
             <span className="font-mono">{data.agentName}</span>
           </div>
 
           {/* Price & Change */}
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-foreground font-mono">${data.price.toFixed(2)}</span>
-            <span className={data.change >= 0 ? 'text-trade-yes' : 'text-trade-no'}>
+            <span className="text-foreground font-mono font-medium">${data.price.toFixed(2)}</span>
+            <span className={data.change >= 0 ? 'text-trade-yes' : 'text-trade-no'} style={{ fontWeight: 500 }}>
               {data.change >= 0 ? '+' : ''}{data.change.toFixed(1)}%
             </span>
           </div>
@@ -95,10 +112,11 @@ export const PredictionNode = ({ data, position, isHighlighted, onClick, onShowT
       {/* Hover Tooltip */}
       {showTooltip && (
         <motion.div
-          className="absolute z-50 w-80 bg-card border border-border p-3 shadow-lg rounded-xl pointer-events-auto"
+          className="absolute z-50 w-80 bg-bg-card border border-border p-4 pointer-events-auto rounded"
           style={{ 
             left: 280, 
             top: 0,
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.6)'
           }}
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
@@ -106,10 +124,10 @@ export const PredictionNode = ({ data, position, isHighlighted, onClick, onShowT
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
         >
-          <div className="text-xs text-terminal-accent font-mono mb-2">
+          <div className="text-xs text-terminal-accent font-mono mb-3">
             &gt; AI_REASONING
           </div>
-          <div className="text-xs text-muted-foreground leading-relaxed mb-3">
+          <div className="text-[13px] text-text-secondary leading-[1.5] mb-4" style={{ fontWeight: 400 }}>
             {data.reasoning}
           </div>
           <div className="text-xs text-foreground mb-2">
@@ -122,7 +140,8 @@ export const PredictionNode = ({ data, position, isHighlighted, onClick, onShowT
                 onShowTrades?.();
                 setShowTooltip(false);
               }}
-              className="w-full text-xs px-2 py-1.5 border border-border hover:bg-muted transition-colors cursor-pointer"
+              className="w-full text-xs px-3 py-2 border border-border bg-muted hover:bg-secondary transition-colors cursor-pointer text-foreground"
+              style={{ fontWeight: 500 }}
             >
               Show Trades
             </button>

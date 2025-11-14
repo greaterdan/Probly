@@ -26,7 +26,7 @@ export const SystemStatusBar = () => {
   };
 
   return (
-    <div className="h-8 bg-card border-b border-border flex items-center px-4 text-xs font-mono">
+    <div className="h-8 bg-bg-elevated border-b border-border flex items-center px-4 text-xs font-mono">
       {/* Left: Status */}
       <div className="flex items-center gap-2 min-w-32">
         <span className="text-terminal-accent">&gt; LIVE_FEED</span>
@@ -35,7 +35,7 @@ export const SystemStatusBar = () => {
 
       {/* Center: Scrolling Feed */}
       <div className="flex-1 overflow-hidden mx-4">
-        <div className="animate-marquee whitespace-nowrap text-muted-foreground">
+        <div className="animate-marquee whitespace-nowrap text-text-secondary">
           {feedItems.map((item, index) => (
             <span key={item.id}>
               {item.text}
@@ -46,7 +46,7 @@ export const SystemStatusBar = () => {
       </div>
 
       {/* Right: System Time */}
-      <div className="text-muted-foreground min-w-40 text-right">
+      <div className="text-text-muted min-w-40 text-right">
         SYS_TIME {formatTime(currentTime)}
       </div>
     </div>

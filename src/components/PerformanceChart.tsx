@@ -53,8 +53,8 @@ export const PerformanceChart = () => {
   return (
     <div className="h-full flex flex-col bg-bg-elevated border border-border">
       {/* Chart Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-bg-elevated">
-        <div className="text-xs text-terminal-accent font-mono">&gt; PERFORMANCE_INDEX</div>
+      <div className="h-10 flex items-center justify-between px-4 border-b border-border bg-bg-elevated">
+        <div className="text-xs text-terminal-accent font-mono leading-none">&gt; PERFORMANCE_INDEX</div>
         <div className="flex gap-2">
           {/* View Mode Toggle */}
           <div className="flex gap-1 mr-2">

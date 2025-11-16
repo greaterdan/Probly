@@ -219,6 +219,43 @@ const mockDecisions: AIDecision[] = [
       },
     ]
   },
+  {
+    id: "6",
+    agentName: "QWEN 2.5",
+    agentEmoji: "🤖",
+    timestamp: new Date(Date.now() - 420000),
+    action: "TRADE",
+    market: "US CPI below 3%",
+    decision: "NO",
+    confidence: 61,
+    reasoning: "Macro signals and recent trend suggest inflation remains sticky above target in near term.",
+    decisionHistory: [
+      {
+        id: "6-1",
+        timestamp: new Date(Date.now() - 420000),
+        market: "US CPI below 3%",
+        decision: "NO",
+        confidence: 61,
+        reasoning: "Shelter and services inflation prints indicate slower disinflation path."
+      },
+      {
+        id: "6-2",
+        timestamp: new Date(Date.now() - 1020000),
+        market: "ETH > $3,800",
+        decision: "YES",
+        confidence: 64,
+        reasoning: "On-chain velocity and options skew point to upside continuation."
+      },
+      {
+        id: "6-3",
+        timestamp: new Date(Date.now() - 1380000),
+        market: "Eurozone rate cut Q2",
+        decision: "YES",
+        confidence: 58,
+        reasoning: "ECB guidance and swaps pricing imply elevated probability of near-term easing."
+      }
+    ]
+  },
 ];
 
 const formatTimeAgo = (date: Date) => {
@@ -385,7 +422,7 @@ export const AISummaryPanel = () => {
                       className="overflow-hidden"
                     >
                       <div className="px-3 pb-3 border-t border-border mt-2 pt-3">
-                        <div className="text-[9px] text-muted-foreground font-mono uppercase mb-2" style={{ fontWeight: 600 }}>
+                        <div className="text-[11px] text-muted-foreground font-mono uppercase mb-2" style={{ fontWeight: 600 }}>
                           Decision History
                         </div>
                         <div className="space-y-2">
@@ -396,7 +433,7 @@ export const AISummaryPanel = () => {
                             >
                               <div className="flex items-center justify-between mb-1.5">
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-[9px] font-mono text-foreground" style={{ fontWeight: 600 }}>
+                                  <span className="text-[11px] font-mono text-foreground" style={{ fontWeight: 600 }}>
                                     {historyItem.market}
                                   </span>
                                   <div className={`px-1.5 py-0.5 rounded text-[8px] font-mono font-bold ${
@@ -408,15 +445,15 @@ export const AISummaryPanel = () => {
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-[8px] text-muted-foreground font-mono">
+                                  <span className="text-[10px] text-muted-foreground font-mono">
                                     {formatTimeAgo(historyItem.timestamp)}
                                   </span>
-                                  <span className="text-[8px] font-mono text-terminal-accent" style={{ fontWeight: 600 }}>
+                                  <span className="text-[10px] font-mono text-terminal-accent" style={{ fontWeight: 600 }}>
                                     {historyItem.confidence}%
                                   </span>
                                 </div>
                               </div>
-                              <div className="text-[9px] text-text-secondary leading-relaxed" style={{ fontWeight: 400 }}>
+                              <div className="text-[11px] text-text-secondary leading-relaxed" style={{ fontWeight: 400 }}>
                                 {historyItem.reasoning}
                               </div>
                             </div>

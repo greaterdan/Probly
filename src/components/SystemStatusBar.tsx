@@ -68,7 +68,7 @@ export const SystemStatusBar = ({ onToggleAgentBuilder }: { onToggleAgentBuilder
             variant="outline"
             size="sm"
             onClick={onToggleAgentBuilder}
-            className="h-7 px-2.5 text-xs font-mono border-border bg-background hover:bg-bg-elevated rounded-full"
+            className="h-7 px-2.5 text-xs font-mono border-border bg-background hover:bg-bg-elevated text-foreground hover:text-foreground rounded-full"
           >
             <Bot className="w-2.5 h-2.5 mr-1.5" />
             Build Agent

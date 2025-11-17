@@ -133,10 +133,423 @@ app.get('/api/polymarket/markets', async (req, res) => {
   }
 });
 
+// News API proxy endpoint with caching
+const NEWS_API_KEY = '245568e9eb38441fbe7f2e48527932d8';
+const NEWS_API_URL = 'https://newsapi.org/v2/everything';
+const NEWSDATA_API_KEY = 'pub_c8c2a4c6f89848319fc7c5798cd1c287';
+const NEWSDATA_API_URL = 'https://newsdata.io/api/1/news';
+// GNews API - Get your free API key from https://gnews.io/register
+// You can either set it as an environment variable: GNEWS_API_KEY=your_key_here
+// Or replace the empty string below with your API key
+const GNEWS_API_KEY = process.env.GNEWS_API_KEY || 'ff4c132f93616db0e87009c771ea52db';
+const GNEWS_API_URL = 'https://gnews.io/api/v4/search';
+
+// Simple in-memory cache (refresh every 5 minutes)
+let newsCache = {
+  data: null,
+  timestamp: null,
+  CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
+};
+
+// Helper function to normalize title for deduplication
+const normalizeTitle = (title) => {
+  return title
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+// Deduplicate articles based on title similarity and URL
+const deduplicateArticles = (articles) => {
+  const seen = new Map();
+  const uniqueArticles = [];
+  
+  for (const article of articles) {
+    const normalizedTitle = normalizeTitle(article.title || '');
+    const url = article.url || '';
+    
+    // Check if we've seen a similar title (exact match or very similar)
+    let isDuplicate = false;
+    for (const [key, existing] of seen.entries()) {
+      const existingTitle = normalizeTitle(existing.title || '');
+      
+      // Check for exact URL match
+      if (url && existing.url && url === existing.url) {
+        isDuplicate = true;
+        break;
+      }
+      
+      // Check for very similar titles (same normalized title)
+      if (normalizedTitle && existingTitle && normalizedTitle === existingTitle) {
+        isDuplicate = true;
+        break;
+      }
+      
+      // Check for high similarity (one title contains the other or vice versa)
+      if (normalizedTitle.length > 20 && existingTitle.length > 20) {
+        if (normalizedTitle.includes(existingTitle) || existingTitle.includes(normalizedTitle)) {
+          // If one is significantly longer, prefer the longer one
+          if (Math.abs(normalizedTitle.length - existingTitle.length) < 10) {
+            isDuplicate = true;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (!isDuplicate) {
+      const key = normalizedTitle || url || `article-${uniqueArticles.length}`;
+      seen.set(key, article);
+      uniqueArticles.push(article);
+    }
+  }
+  
+  return uniqueArticles;
+};
+
+// Fetch news from NewsAPI
+const fetchNewsAPI = async () => {
+  // Get date from 7 days ago to ensure we get results
+  const fromDate = new Date();
+  fromDate.setDate(fromDate.getDate() - 7);
+  const fromDateStr = fromDate.toISOString().split('T')[0];
+  
+  // Try multiple queries to get more results
+  const queries = [
+    'prediction OR election',
+    'cryptocurrency OR bitcoin',
+    'stock market OR economy',
+    'technology OR AI',
+    'sports OR climate'
+  ];
+  
+  const fetchPromises = queries.map(async (query) => {
+    try {
+      const url = `${NEWS_API_URL}?q=${encodeURIComponent(query)}&language=en&sortBy=publishedAt&pageSize=20&from=${fromDateStr}&apiKey=${NEWS_API_KEY}`;
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ NewsAPI error for query "${query}": ${response.status} ${response.statusText}`);
+        return [];
+      }
+      
+      const data = await response.json();
+      
+      if (data.status === 'ok' && data.articles) {
+        return data.articles.map(article => ({
+          ...article,
+          sourceApi: 'newsapi',
+        }));
+      }
+      
+      if (data.status === 'error') {
+        console.error(`❌ NewsAPI returned error for query "${query}":`, data.message);
+      }
+      
+      return [];
+    } catch (error) {
+      console.error(`❌ Error fetching NewsAPI for query "${query}":`, error.message);
+      return [];
+    }
+  });
+  
+  console.log(`📰 Fetching news from NewsAPI...`);
+  const results = await Promise.all(fetchPromises);
+  const allArticles = results.flat();
+  
+  // Remove duplicates based on URL
+  const uniqueArticles = [];
+  const seenUrls = new Set();
+  
+  for (const article of allArticles) {
+    if (article.url && !seenUrls.has(article.url)) {
+      seenUrls.add(article.url);
+      uniqueArticles.push(article);
+    }
+  }
+  
+  console.log(`✅ NewsAPI: Fetched ${allArticles.length} articles, ${uniqueArticles.length} unique`);
+  
+  return uniqueArticles;
+};
+
+// Fetch news from NewsData.io
+const fetchNewsData = async () => {
+  // NewsData.io uses different query parameters - try multiple queries
+  const queries = [
+    'prediction',
+    'election',
+    'cryptocurrency',
+    'stock market',
+    'economy',
+    'technology',
+    'sports',
+    'climate'
+  ];
+  
+  // Fetch from multiple queries and combine results
+  const fetchPromises = queries.map(async (query) => {
+    try {
+      const url = `${NEWSDATA_API_URL}?apikey=${NEWSDATA_API_KEY}&q=${encodeURIComponent(query)}&language=en&size=10`;
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        return [];
+      }
+      
+      const data = await response.json();
+      
+      if (data.status === 'success' && data.results) {
+        return data.results;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error(`❌ Error fetching NewsData.io for query "${query}":`, error.message);
+      return [];
+    }
+  });
+  
+  console.log(`📰 Fetching news from NewsData.io...`);
+  const results = await Promise.all(fetchPromises);
+  const allArticles = results.flat();
+  
+  // Remove duplicates based on link
+  const uniqueArticles = [];
+  const seenLinks = new Set();
+  
+  for (const article of allArticles) {
+    const link = article.link || article.guid;
+    if (link && !seenLinks.has(link)) {
+      seenLinks.add(link);
+      uniqueArticles.push(article);
+    }
+  }
+  
+  // Transform NewsData.io format to match NewsAPI format
+  return uniqueArticles.map(article => ({
+    source: {
+      id: article.source_id || null,
+      name: article.source_name || 'Unknown',
+    },
+    author: article.creator?.[0] || null,
+    title: article.title || '',
+    description: article.description || null,
+    url: article.link || article.guid || '',
+    urlToImage: article.image_url || null,
+    publishedAt: article.pubDate || new Date().toISOString(),
+    content: article.content || null,
+    sourceApi: 'newsdata',
+  }));
+};
+
+// Fetch news from GNews
+const fetchGNews = async () => {
+  if (!GNEWS_API_KEY) {
+    console.log('⚠️ GNews API key not configured, skipping GNews');
+    return [];
+  }
+  
+  // GNews has rate limits, so use fewer broader queries
+  // Using broader queries to get more diverse results with fewer API calls
+  const queries = [
+    'prediction OR election',
+    'cryptocurrency OR stock market',
+    'technology OR economy',
+    'sports OR climate'
+  ];
+  
+  // Fetch sequentially with delays to avoid rate limits
+  const allArticles = [];
+  
+  console.log(`📰 Fetching news from GNews...`);
+  
+  for (const query of queries) {
+    try {
+      // Add delay between requests to avoid rate limits
+      if (allArticles.length > 0) {
+        await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+      }
+      
+      const url = `${GNEWS_API_URL}?q=${encodeURIComponent(query)}&lang=en&max=20&apikey=${GNEWS_API_KEY}`;
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        if (response.status === 429) {
+          console.error(`⚠️ GNews rate limit hit for query "${query}", skipping remaining queries`);
+          break; // Stop if we hit rate limit
+        }
+        console.error(`❌ GNews error for query "${query}": ${response.status} ${response.statusText}`);
+        continue;
+      }
+      
+      const data = await response.json();
+      
+      if (data.articles && Array.isArray(data.articles)) {
+        allArticles.push(...data.articles);
+      }
+    } catch (error) {
+      console.error(`❌ Error fetching GNews for query "${query}":`, error.message);
+    }
+  }
+  
+  // Remove duplicates based on url
+  const uniqueArticles = [];
+  const seenUrls = new Set();
+  
+  for (const article of allArticles) {
+    const url = article.url || article.link;
+    if (url && !seenUrls.has(url)) {
+      seenUrls.add(url);
+      uniqueArticles.push(article);
+    }
+  }
+  
+  // Transform GNews format to match NewsAPI format
+  return uniqueArticles.map(article => ({
+    source: {
+      id: article.source?.id || null,
+      name: article.source?.name || 'Unknown',
+    },
+    author: article.author || null,
+    title: article.title || '',
+    description: article.description || null,
+    url: article.url || article.link || '',
+    urlToImage: article.image || null,
+    publishedAt: article.publishedAt || article.pubDate || new Date().toISOString(),
+    content: article.content || null,
+    sourceApi: 'gnews',
+  }));
+};
+
+app.get('/api/news', async (req, res) => {
+  const { source = 'all' } = req.query; // 'all', 'newsapi', 'newsdata', or 'gnews'
+  
+  console.log(`📰 News API request received (source: ${source})`);
+  
+  try {
+    // Check cache
+    const cacheKey = `news-${source}`;
+    const now = Date.now();
+    if (newsCache.data && newsCache.timestamp && (now - newsCache.timestamp) < newsCache.CACHE_DURATION) {
+      // Filter by source if needed
+      if (source === 'all') {
+        console.log(`✅ Returning cached news (${Math.floor((now - newsCache.timestamp) / 1000)}s old)`);
+        return res.json(newsCache.data);
+      } else {
+        const filtered = {
+          ...newsCache.data,
+          articles: newsCache.data.articles.filter(a => a.sourceApi === source),
+        };
+        return res.json(filtered);
+      }
+    }
+
+    // Fetch from all APIs in parallel
+    const fetchPromises = [];
+    
+    if (source === 'all' || source === 'newsapi') {
+      fetchPromises.push(fetchNewsAPI().catch(err => {
+        console.error('❌ Error fetching from NewsAPI:', err);
+        return [];
+      }));
+    }
+    
+    if (source === 'all' || source === 'newsdata') {
+      fetchPromises.push(fetchNewsData().catch(err => {
+        console.error('❌ Error fetching from NewsData.io:', err);
+        return [];
+      }));
+    }
+    
+    if (source === 'all' || source === 'gnews') {
+      fetchPromises.push(fetchGNews().catch(err => {
+        console.error('❌ Error fetching from GNews:', err);
+        return [];
+      }));
+    }
+    
+    const results = await Promise.all(fetchPromises);
+    let allArticles = results.flat();
+    
+    // Deduplicate articles
+    console.log(`📰 Fetched ${allArticles.length} articles before deduplication`);
+    allArticles = deduplicateArticles(allArticles);
+    console.log(`✅ ${allArticles.length} unique articles after deduplication`);
+    
+    // Sort by published date (newest first)
+    allArticles.sort((a, b) => {
+      const dateA = new Date(a.publishedAt || 0).getTime();
+      const dateB = new Date(b.publishedAt || 0).getTime();
+      return dateB - dateA;
+    });
+    
+    // Limit to 100 articles
+    allArticles = allArticles.slice(0, 100);
+    
+    const responseData = {
+      status: 'ok',
+      totalResults: allArticles.length,
+      articles: allArticles,
+      sources: {
+        newsapi: allArticles.filter(a => a.sourceApi === 'newsapi').length,
+        newsdata: allArticles.filter(a => a.sourceApi === 'newsdata').length,
+        gnews: allArticles.filter(a => a.sourceApi === 'gnews').length,
+      },
+    };
+    
+    // Cache the response
+    newsCache = {
+      data: responseData,
+      timestamp: Date.now(),
+      CACHE_DURATION: 5 * 60 * 1000,
+    };
+    
+    // Filter by source if needed
+    if (source !== 'all') {
+      responseData.articles = responseData.articles.filter(a => a.sourceApi === source);
+      responseData.totalResults = responseData.articles.length;
+    }
+    
+    console.log(`✅ Fetched and cached ${responseData.articles.length} news articles`);
+    res.json(responseData);
+  } catch (error) {
+    console.error('❌ Error fetching news:', error);
+    
+    // Return cached data if available, even if expired
+    if (newsCache.data) {
+      console.log(`⚠️ Returning stale cached news due to error`);
+      let cachedData = newsCache.data;
+      
+      if (source !== 'all') {
+        cachedData = {
+          ...cachedData,
+          articles: cachedData.articles.filter(a => a.sourceApi === source),
+          totalResults: cachedData.articles.filter(a => a.sourceApi === source).length,
+        };
+      }
+      
+      return res.json(cachedData);
+    }
+    
+    res.status(500).json({ 
+      error: error.message,
+      articles: [],
+      status: 'error',
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Polymarket proxy server running on http://localhost:${PORT}`);
   console.log(`📡 Endpoints:`);
   console.log(`   GET /api/predictions - Get ready-to-use predictions`);
   console.log(`   GET /api/polymarket/markets - Legacy endpoint (raw markets)`);
+  console.log(`   GET /api/news?source=all|newsapi|newsdata|gnews - Get news articles (cached, deduplicated)`);
 });
 

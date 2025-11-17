@@ -131,32 +131,32 @@ export const SystemStatusBar = ({
 
       {/* Right side - Performance, Summary, News Feed, Build Agent, Wallet, Login */}
       <div className="flex items-center gap-2 ml-auto">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onTogglePerformance}
-          className={`h-7 w-7 p-0 border-border rounded-full transition-colors ${
-            isPerformanceOpen 
-              ? 'bg-terminal-accent/20 border-terminal-accent/50 text-terminal-accent hover:bg-terminal-accent/30' 
-              : 'bg-background hover:bg-bg-elevated text-foreground hover:text-foreground'
-          }`}
-          title="Performance Index"
-        >
-          <BarChart3 className="w-3.5 h-3.5" />
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onToggleSummary}
-          className={`h-7 w-7 p-0 border-border rounded-full transition-colors ${
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onTogglePerformance}
+            className={`h-7 w-7 p-0 border-border rounded-full transition-colors ${
+              isPerformanceOpen 
+                ? 'bg-terminal-accent/20 border-terminal-accent/50 text-terminal-accent hover:bg-terminal-accent/30' 
+                : 'bg-background hover:bg-bg-elevated text-foreground hover:text-foreground'
+            }`}
+            title="Performance Index"
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onToggleSummary}
+            className={`h-7 w-7 p-0 border-border rounded-full transition-colors ${
             isSummaryOpen && !showNewsFeed
-              ? 'bg-terminal-accent/20 border-terminal-accent/50 text-terminal-accent hover:bg-terminal-accent/30' 
-              : 'bg-background hover:bg-bg-elevated text-foreground hover:text-foreground'
-          }`}
-          title="Summary"
-        >
-          <Users className="w-3.5 h-3.5" />
-        </Button>
+                ? 'bg-terminal-accent/20 border-terminal-accent/50 text-terminal-accent hover:bg-terminal-accent/30' 
+                : 'bg-background hover:bg-bg-elevated text-foreground hover:text-foreground'
+            }`}
+            title="Summary"
+          >
+            <Users className="w-3.5 h-3.5" />
+          </Button>
         <Button
           variant="outline"
           size="sm"
@@ -172,28 +172,28 @@ export const SystemStatusBar = ({
         </Button>
         {isLoggedIn && custodialWallet && (
           <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onToggleAgentBuilder}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onToggleAgentBuilder}
               className="h-7 w-7 p-0 border-border bg-background hover:bg-bg-elevated text-foreground hover:text-foreground rounded-full"
               title="Build Agent"
-            >
+          >
               <Bot className="w-3.5 h-3.5" />
-            </Button>
-            <CustodialWallet
-              walletAddress={custodialWallet.publicKey}
-              privateKey={custodialWallet.privateKey}
-            />
-          </>
-        )}
-        <LoginButton
-          onLogin={handleLogin}
-          onLogout={handleLogout}
-          isLoggedIn={isLoggedIn}
-          userEmail={userEmail}
-          walletAddress={walletAddress}
-        />
+          </Button>
+          <CustodialWallet
+            walletAddress={custodialWallet.publicKey}
+            privateKey={custodialWallet.privateKey}
+          />
+        </>
+      )}
+      <LoginButton
+        onLogin={handleLogin}
+        onLogout={handleLogout}
+        isLoggedIn={isLoggedIn}
+        userEmail={userEmail}
+        walletAddress={walletAddress}
+      />
       </div>
     </div>
   );

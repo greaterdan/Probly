@@ -289,7 +289,7 @@ const Index = () => {
     }
     
     const finalSize = Math.max(20, Math.min(100, newMiddleSize));
-    setMiddlePanelSize(finalSize);
+        setMiddlePanelSize(finalSize);
   }, [isPerformanceOpen, isSummaryOpen]);
 
 
@@ -439,7 +439,7 @@ const Index = () => {
               }
               resizeTimeoutRef.current = setTimeout(() => {
                 if (isDirectlyResizingLeftRef.current) {
-                  isResizingRef.current = false;
+                isResizingRef.current = false;
                   isDirectlyResizingLeftRef.current = false;
                 }
               }, 150);
@@ -511,7 +511,7 @@ const Index = () => {
               resizeTimeoutRef.current = setTimeout(() => {
                 // Only clear if no side panels are being dragged
                 if (!isDirectlyResizingLeftRef.current && !isDirectlyResizingRightRef.current) {
-                  isResizingRef.current = false;
+                isResizingRef.current = false;
                 }
               }, 200);
             }}
@@ -681,13 +681,13 @@ const Index = () => {
             />
 
             {/* Prediction Bubble Field - FULL SPACE - NO ZOOM/PAN */}
-            <PredictionBubbleField
-              markets={limitedPredictions}
-              onBubbleClick={(market) => handleNodeClick(market.id)}
-              selectedNodeId={selectedNode}
-              selectedAgent={selectedAgent}
-              agents={mockAgents}
-            />
+              <PredictionBubbleField
+                markets={limitedPredictions}
+                onBubbleClick={(market) => handleNodeClick(market.id)}
+                selectedNodeId={selectedNode}
+                selectedAgent={selectedAgent}
+                agents={mockAgents}
+              />
           </div>
 
           {/* Trades Panel - Slide up from bottom, half screen */}
@@ -742,7 +742,7 @@ const Index = () => {
               }
               resizeTimeoutRef.current = setTimeout(() => {
                 if (isDirectlyResizingRightRef.current) {
-                  isResizingRef.current = false;
+                isResizingRef.current = false;
                   isDirectlyResizingRightRef.current = false;
                 }
               }, 150);

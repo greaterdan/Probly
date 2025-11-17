@@ -6,6 +6,7 @@ import { PerformanceChart } from "@/components/PerformanceChart";
 import { SystemStatusBar } from "@/components/SystemStatusBar";
 import { ActivePositions } from "@/components/ActivePositions";
 import { MarketDetailsModal } from "@/components/MarketDetailsModal";
+import { MarketDetailsPanel } from "@/components/MarketDetailsPanel";
 import { AISummaryPanel } from "@/components/AISummaryPanel";
 import { NewsFeed } from "@/components/NewsFeed";
 import { AgentBuilder } from "@/components/AgentBuilder";
@@ -53,7 +54,7 @@ const Index = () => {
   const [predictions, setPredictions] = useState<PredictionNodeData[]>([]);
   const [loadingMarkets, setLoadingMarkets] = useState(false);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
-  const [bubbleLimit, setBubbleLimit] = useState<number>(150);
+  const [bubbleLimit, setBubbleLimit] = useState<number>(50);
   
   // Filter state
   const [filters, setFilters] = useState({
@@ -240,7 +241,16 @@ const Index = () => {
 
   const handleBubbleClick = (prediction: PredictionNodeData) => {
     setSelectedPrediction(prediction);
-    setMarketModalOpen(true);
+    // Show in side panel instead of modal
+    // Ensure performance panel is open to show the details
+    if (!isPerformanceOpen) {
+      setIsPerformanceOpen(true);
+    }
+  };
+
+  const handleCloseMarketDetails = () => {
+    setSelectedPrediction(null);
+    setSelectedNode(null);
   };
 
   // Pan/zoom handlers removed - bubbles now fill full screen and can only be dragged individually
@@ -649,10 +659,17 @@ const Index = () => {
             className={`${isPerformanceOpen ? 'border-r border-border' : ''} overflow-hidden relative`}
           >
             {isPerformanceOpen && leftPanelSize >= 10 && (
-              <PerformanceChart 
-                predictions={predictions}
-                selectedMarketId={selectedNode}
-              />
+              selectedPrediction ? (
+                <MarketDetailsPanel
+                  market={selectedPrediction}
+                  onClose={handleCloseMarketDetails}
+                />
+              ) : (
+                <PerformanceChart 
+                  predictions={predictions}
+                  selectedMarketId={selectedNode}
+                />
+              )
             )}
           </ResizablePanel>
 
@@ -1149,17 +1166,8 @@ const Index = () => {
         onAgentClick={handleAgentClick}
       />
 
-      {/* Market Details Modal */}
-      {selectedPrediction && (
-        <MarketDetailsModal
-          isOpen={marketModalOpen}
-          onClose={() => {
-            setMarketModalOpen(false);
-            setSelectedPrediction(null);
-          }}
-          market={selectedPrediction}
-        />
-      )}
+      {/* Market Details Modal - Replaced by side panel */}
+      {/* Modal removed - details now show in left side panel */}
     </div>
   );
 };

@@ -1847,6 +1847,23 @@ app.get('/api/agents/summary', apiLimiter, async (req, res) => {
 });
 console.log('✅ Registered: GET /api/agents/summary');
 
+// GET /api/agents/stats - Get stats for all agents
+app.get('/api/agents/stats', apiLimiter, async (req, res) => {
+  try {
+    if (!getAgentsStats) {
+      const agentsModule = await import('./api/agents.js');
+      getAgentTrades = agentsModule.getAgentTrades;
+      getAgentsSummary = agentsModule.getAgentsSummary;
+      getAgentsStats = agentsModule.getAgentsStats;
+    }
+    return getAgentsStats(req, res);
+  } catch (error) {
+    console.error('[API] Failed to load agents module:', error);
+    res.status(503).json({ error: 'Agents module not available', message: error.message });
+  }
+});
+console.log('✅ Registered: GET /api/agents/stats');
+
 // Waitlist endpoint - sends email notification
 // SECURITY: Apply rate limiting, CSRF protection, and input sanitization
 app.post('/api/waitlist', waitlistLimiter, (req, res, next) => {

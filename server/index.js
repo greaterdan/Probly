@@ -1095,6 +1095,19 @@ export default app;
 // Serverless platforms (like AWS Lambda) don't need app.listen
 // Railway needs app.listen on 0.0.0.0 to be accessible
 if (process.env.VERCEL !== '1' && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  // Add top-level error handler before starting server
+  process.on('uncaughtException', (error) => {
+    console.error('❌ Uncaught Exception during startup:', error);
+    console.error('Stack:', error.stack);
+    // Don't exit - let Railway see the error and restart
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Unhandled Rejection during startup:', promise);
+    console.error('Reason:', reason);
+    // Don't exit - let Railway handle it
+  });
+
   console.log('🔧 Starting server...');
   console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔧 Railway PORT env: ${process.env.PORT || 'NOT SET'}`);
@@ -1120,20 +1133,8 @@ if (process.env.VERCEL !== '1' && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
       if (err.code === 'EADDRINUSE') {
         console.error(`Port ${PORT} is already in use`);
       }
-      process.exit(1);
-    });
-
-    // Handle uncaught errors gracefully - log but don't crash immediately
-    process.on('uncaughtException', (error) => {
-      console.error('❌ Uncaught Exception:', error);
-      console.error('Stack:', error.stack);
-      // Don't exit immediately - let Railway handle it
-    });
-
-    process.on('unhandledRejection', (reason, promise) => {
-      console.error('❌ Unhandled Rejection at:', promise);
-      console.error('Reason:', reason);
-      // Don't exit - let Railway restart it
+      // Don't exit - let Railway see the error and handle it
+      // process.exit(1);
     });
     
     // Keep process alive

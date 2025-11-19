@@ -14,13 +14,16 @@ interface ChartDataPoint {
   GPT5: number;
 }
 
+// All agents start with $3,000 USD
+const STARTING_CAPITAL = 3000;
+
 const mockChartData: ChartDataPoint[] = [
-  { time: "00:00", DEEPSEEK: 1000, CLAUDE: 1000, QWEN: 1000, GEMINI: 1000, GROK: 1000, GPT5: 1000 },
-  { time: "04:00", DEEPSEEK: 1120, CLAUDE: 1180, QWEN: 1050, GEMINI: 1250, GROK: 980, GPT5: 950 },
-  { time: "08:00", DEEPSEEK: 1280, CLAUDE: 1420, QWEN: 1120, GEMINI: 1480, GROK: 890, GPT5: 870 },
-  { time: "12:00", DEEPSEEK: 1450, CLAUDE: 1620, QWEN: 1180, GEMINI: 1680, GROK: 840, GPT5: 800 },
-  { time: "16:00", DEEPSEEK: 1590, CLAUDE: 1880, QWEN: 1240, GEMINI: 1920, GROK: 780, GPT5: 750 },
-  { time: "20:00", DEEPSEEK: 1720, CLAUDE: 2120, QWEN: 1316, GEMINI: 2180, GROK: 740, GPT5: 710 },
+  { time: "00:00", DEEPSEEK: STARTING_CAPITAL, CLAUDE: STARTING_CAPITAL, QWEN: STARTING_CAPITAL, GEMINI: STARTING_CAPITAL, GROK: STARTING_CAPITAL, GPT5: STARTING_CAPITAL },
+  { time: "04:00", DEEPSEEK: 3120, CLAUDE: 3180, QWEN: 3050, GEMINI: 3250, GROK: 2980, GPT5: 2950 },
+  { time: "08:00", DEEPSEEK: 3280, CLAUDE: 3420, QWEN: 3120, GEMINI: 3480, GROK: 2890, GPT5: 2870 },
+  { time: "12:00", DEEPSEEK: 3450, CLAUDE: 3620, QWEN: 3180, GEMINI: 3680, GROK: 2840, GPT5: 2800 },
+  { time: "16:00", DEEPSEEK: 3590, CLAUDE: 3880, QWEN: 3240, GEMINI: 3920, GROK: 2780, GPT5: 2750 },
+  { time: "20:00", DEEPSEEK: 3720, CLAUDE: 4120, QWEN: 3316, GEMINI: 4180, GROK: 2740, GPT5: 2710 },
 ];
 
 const AGENT_LOGO: Record<string, string> = {
@@ -269,12 +272,12 @@ export const PerformanceChart = ({ predictions = [], selectedMarketId = null }: 
           
           const newDataPoint: ChartDataPoint = {
             time: timeStr,
-            DEEPSEEK: 3000, // Starting capital - will be updated with real data
-            CLAUDE: 3000,
-            QWEN: 3000,
-            GEMINI: 3000,
-            GROK: 3000,
-            GPT5: 3000,
+            DEEPSEEK: STARTING_CAPITAL, // Starting capital - will be updated with real data
+            CLAUDE: STARTING_CAPITAL,
+            QWEN: STARTING_CAPITAL,
+            GEMINI: STARTING_CAPITAL,
+            GROK: STARTING_CAPITAL,
+            GPT5: STARTING_CAPITAL,
           };
           
           // Map agent data to chart format
@@ -291,8 +294,9 @@ export const PerformanceChart = ({ predictions = [], selectedMarketId = null }: 
             data.agents.forEach((agent: any) => {
               const chartKey = agentMap[agent.id] as keyof ChartDataPoint;
               if (chartKey) {
-                // Calculate current capital: starting (3000) + PnL
-                newDataPoint[chartKey] = 3000 + (agent.pnl || 0);
+                // Calculate current capital: starting ($3,000) + PnL
+                // PnL can be positive (wins) or negative (losses)
+                newDataPoint[chartKey] = STARTING_CAPITAL + (agent.pnl || 0);
               }
             });
           }

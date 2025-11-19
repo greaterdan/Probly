@@ -1134,7 +1134,12 @@ const Index = () => {
                       onMarketClick={(market) => {
                         setSelectedPrediction(market);
                         setSelectedNode(market.id);
-                        setShowWatchlist(false);
+                        // Keep watchlist open - don't close it
+                        // Also ensure left panel (market details) is open
+                        if (!isPerformanceOpen) {
+                          setIsPerformanceOpen(true);
+                          setLeftPanelSize(30);
+                        }
                       }}
                     />
                   ) : showNewsFeed ? (

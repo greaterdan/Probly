@@ -486,7 +486,10 @@ app.get('/api/predictions', predictionsLimiter, async (req, res) => {
     // ALWAYS fetch all markets for Earnings, Geopolitics, and Elections
     // and rely on category detection from actual market data
     if (category === 'Earnings' || category === 'Geopolitics' || category === 'Elections') {
-      console.log(`Fetching ALL markets for ${category} category (will filter by detection)...`);
+      // Reduced logging - only log occasionally
+      if (Math.random() < 0.1) {
+        console.log(`Fetching ALL markets for ${category} category (will filter by detection)...`);
+      }
       const allMarkets = await fetchAllMarkets({
         category: null, // Fetch all markets - don't filter by API category
         active: true,
@@ -495,9 +498,15 @@ app.get('/api/predictions', predictionsLimiter, async (req, res) => {
         searchQuery: isSearching ? search.trim() : null,
       });
       markets = allMarkets; // Use all markets, will filter by detection below
-      console.log(`Fetched ${markets.length} total markets for ${category} detection`);
+      // Reduced logging
+      if (Math.random() < 0.1) {
+        console.log(`Fetched ${markets.length} total markets for ${category} detection`);
+      }
     } else if (markets.length < 50 && polymarketCategory) {
-      console.log(`Category search for ${category} returned only ${markets.length} markets. Trying without category filter...`);
+      // Reduced logging
+      if (Math.random() < 0.1) {
+        console.log(`Category search for ${category} returned only ${markets.length} markets. Trying without category filter...`);
+      }
       const allMarkets = await fetchAllMarkets({
         category: null, // Fetch all markets
         active: true,

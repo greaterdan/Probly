@@ -44,7 +44,9 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { fetchAllMarkets } from './services/polymarketService.js';
 import { transformMarkets } from './services/marketTransformer.js';
 import { mapCategoryToPolymarket } from './utils/categoryMapper.js';
-import { getAgentTrades, getAgentsSummary, getAgentsStats } from './api/agents.js';
+// Import agents API lazily to not block server startup
+// These will be loaded dynamically when routes are registered
+let getAgentTrades, getAgentsSummary, getAgentsStats;
 
 // Get directory paths for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -113,7 +115,7 @@ app.get('/health', (req, res) => {
 app.get('/api/health', (req, res) => {
   // Minimal response for Railway healthcheck - must be fast
   res.status(200).json({ status: 'ok' });
-}););
+});
 
 // SECURITY: CSRF Protection - Initialize BEFORE endpoints that use it
 // Generate a secret for CSRF tokens (use environment variable or generate one)

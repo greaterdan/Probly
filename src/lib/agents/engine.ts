@@ -164,39 +164,48 @@ export async function generateTradeForMarket(
   confidence = personalityResult.confidence;
   
   // Calculate sophisticated position size based on multiple factors
+  // AI-driven position sizing: Let the AI's confidence and market score determine investment
   const STARTING_CAPITAL = 3000;
   
-  // Base risk budget by agent risk level
+  // Base risk budget by agent risk level (higher base for more aggressive agents)
   const RISK_BUDGET: Record<'LOW' | 'MEDIUM' | 'HIGH', number> = {
-    LOW: 50,
-    MEDIUM: 100,
-    HIGH: 150,
+    LOW: 80,      // Increased from 50
+    MEDIUM: 150,  // Increased from 100
+    HIGH: 250,    // Increased from 150 - HIGH risk agents invest more
   };
   
   const baseRisk = RISK_BUDGET[agent.risk];
   
-  // Confidence multiplier (0.7x to 1.8x) - higher confidence = larger position
-  const confidenceMultiplier = Math.max(0.7, Math.min(1.8, confidence * 1.2));
+  // Confidence multiplier (0.5x to 2.5x) - MUCH more aggressive
+  // Higher confidence = significantly larger position
+  // AI confidence is 0-1, so map to 0.5-2.5 range
+  const confidenceMultiplier = 0.5 + (confidence * 2.0); // 0.5 to 2.5 range
   
-  // Score multiplier (0.6x to 1.5x) - higher market score = larger position
-  // Scores are typically 10-50, so normalize to 0.2-1.0 range, then scale to 0.6-1.5
-  const normalizedScore = Math.min(1.0, scored.score / 50); // 0-1 range
-  const scoreMultiplier = 0.6 + (normalizedScore * 0.9); // 0.6 to 1.5 range
+  // Score multiplier (0.4x to 2.0x) - MUCH more aggressive
+  // Higher market score = significantly larger position
+  // Scores are typically 10-50, normalize to 0-1, then scale to 0.4-2.0
+  const normalizedScore = Math.min(1.0, Math.max(0, (scored.score - 10) / 40)); // 0-1 range (score 10-50)
+  const scoreMultiplier = 0.4 + (normalizedScore * 1.6); // 0.4 to 2.0 range
   
-  // Calculate base size
+  // Calculate base size with more aggressive multipliers
   let investmentUsd = baseRisk * confidenceMultiplier * scoreMultiplier;
   
   // Apply personality adjustments (personality rules can boost/reduce)
   const personalitySizeMultiplier = personalityResult.sizeUsd / baseSizeUsd;
   investmentUsd = investmentUsd * personalitySizeMultiplier;
   
+  // Add some deterministic variation based on market ID (so same market = same size, but different markets vary)
+  // This ensures variety across different markets
+  const marketVariation = (scored.id.charCodeAt(0) % 20) / 100; // 0-20% variation
+  investmentUsd = investmentUsd * (1 + marketVariation);
+  
   // Apply hard caps and floors
   const MIN_INVESTMENT = 130; // Minimum $130 per trade (user requirement)
   const MAX_INVESTMENT = STARTING_CAPITAL * 0.20; // 20% max per market ($600)
   investmentUsd = Math.max(MIN_INVESTMENT, Math.min(investmentUsd, MAX_INVESTMENT));
   
-  // Round to nearest $5 for cleaner display
-  const finalInvestment = Math.round(investmentUsd / 5) * 5;
+  // Round to nearest $10 for cleaner display (was $5, but $10 gives more variety)
+  const finalInvestment = Math.round(investmentUsd / 10) * 10;
   
   // Determine trade status (simplified - all new trades are OPEN)
   const status: 'OPEN' | 'CLOSED' = 'OPEN';

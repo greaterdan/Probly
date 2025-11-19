@@ -156,8 +156,8 @@ export const AGENT_PROFILES: Record<AgentId, AgentProfile> = {
     id: 'GROK_4',
     displayName: 'GROK 4',
     avatar: '🔥',
-    minVolume: 50000,
-    minLiquidity: 10000,
+    minVolume: 30000,  // Lowered from 50000 to allow more markets
+    minLiquidity: 5000, // Lowered from 10000 to allow more markets
     maxTrades: 5,
     risk: 'HIGH',
     focusCategories: ['Crypto', 'Tech', 'Politics'],
@@ -207,8 +207,8 @@ export const AGENT_PROFILES: Record<AgentId, AgentProfile> = {
     id: 'GEMINI_2_5',
     displayName: 'GEMINI 2.5',
     avatar: '♊',
-    minVolume: 30000,
-    minLiquidity: 5000,
+    minVolume: 20000,  // Lowered from 30000 to allow more markets
+    minLiquidity: 3000, // Lowered from 5000 to allow more markets
     maxTrades: 7,
     risk: 'HIGH',
     focusCategories: ['Sports', 'Entertainment', 'World'],

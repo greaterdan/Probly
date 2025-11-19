@@ -150,15 +150,17 @@ export const MarketDetailsPanel = ({ market, onClose, onWatchlistChange, watchli
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <button
-            onClick={handleToggleWatchlist}
-            className={`w-7 h-7 flex items-center justify-center border border-border hover:bg-muted rounded transition-colors flex-shrink-0 ${
-              isWatched ? 'bg-terminal-accent/20 border-terminal-accent text-terminal-accent' : ''
-            }`}
-            title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
-          >
-            <Star className={`w-3.5 h-3.5 ${isWatched ? 'fill-terminal-accent' : ''}`} />
-          </button>
+          {userEmail && (
+            <button
+              onClick={handleToggleWatchlist}
+              className={`w-7 h-7 flex items-center justify-center border border-border hover:bg-muted rounded transition-colors flex-shrink-0 ${
+                isWatched ? 'bg-terminal-accent/20 border-terminal-accent text-terminal-accent' : ''
+              }`}
+              title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
+            >
+              <Star className={`w-3.5 h-3.5 ${isWatched ? 'fill-terminal-accent' : ''}`} />
+            </button>
+          )}
           <button
             onClick={onClose}
             className="w-7 h-7 flex items-center justify-center border border-border hover:bg-muted rounded transition-colors flex-shrink-0"

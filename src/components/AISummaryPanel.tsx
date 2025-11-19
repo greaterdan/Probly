@@ -299,10 +299,16 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
               const agentId = agentSummary.agentId;
               const trades = data.tradesByAgent?.[agentId] || [];
               
+              console.log(`[AISummaryPanel] Agent ${agentId}: ${trades.length} trades from API`);
+              
               // Get most recent trade
               const recentTrade = trades
                 .filter((t: any) => t.status === 'OPEN')
-                .sort((a: any, b: any) => new Date(b.openedAt).getTime() - new Date(a.openedAt).getTime())[0];
+                .sort((a: any, b: any) => {
+                  const timeA = a.openedAt ? new Date(a.openedAt).getTime() : (a.timestamp ? new Date(a.timestamp).getTime() : 0);
+                  const timeB = b.openedAt ? new Date(b.openedAt).getTime() : (b.timestamp ? new Date(b.timestamp).getTime() : 0);
+                  return timeB - timeA;
+                })[0];
               
               // Get all recent trades (not just one) and deduplicate by market
               const uniqueTrades = new Map<string, any>();

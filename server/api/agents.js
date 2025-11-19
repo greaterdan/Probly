@@ -208,10 +208,28 @@ export async function getAgentsSummary(req, res) {
     );
     
     const allTrades = results.map(r => r.status === 'fulfilled' ? r.value : []);
+    // Map trades to frontend format for summary
     const tradesByAgent = agentIds.reduce((acc, agentId, index) => {
-      acc[agentId] = allTrades[index];
+      const rawTrades = allTrades[index] || [];
+      // Map to frontend format (same as getAgentTrades)
+      const mappedTrades = rawTrades.map(trade => ({
+        id: trade.id,
+        timestamp: new Date(trade.openedAt),
+        market: trade.marketQuestion || trade.marketId,
+        decision: trade.side,
+        confidence: Math.round(trade.confidence * 100),
+        reasoning: typeof trade.reasoning === 'string' ? trade.reasoning : (Array.isArray(trade.reasoning) ? trade.reasoning.join(' ') : ''),
+        pnl: trade.pnl,
+        status: trade.status,
+        investmentUsd: trade.investmentUsd || 0,
+        predictionId: trade.marketId,
+        marketQuestion: trade.marketQuestion,
+        marketId: trade.marketId,
+        openedAt: trade.openedAt,
+      }));
+      acc[agentId] = mappedTrades;
       const result = results[index];
-      const tradeCount = allTrades[index]?.length || 0;
+      const tradeCount = mappedTrades.length;
       if (result.status === 'fulfilled') {
         console.log(`[API:${req.id}] ✅ Agent ${agentId}: ${tradeCount} trades`);
       } else {

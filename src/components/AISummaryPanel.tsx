@@ -297,35 +297,52 @@ export const AISummaryPanel = () => {
                 .filter((t: any) => t.status === 'OPEN')
                 .sort((a: any, b: any) => new Date(b.openedAt).getTime() - new Date(a.openedAt).getTime())[0];
               
-              if (recentTrade) {
+              // Get all recent trades (not just one) and deduplicate by market
+              const uniqueTrades = new Map<string, any>();
+              trades
+                .filter((t: any) => t.status === 'OPEN')
+                .sort((a: any, b: any) => new Date(b.openedAt).getTime() - new Date(a.openedAt).getTime())
+                .forEach((trade: any) => {
+                  // Use marketQuestion or marketId as key for deduplication
+                  const marketKey = trade.marketQuestion || trade.marketId;
+                  if (!uniqueTrades.has(marketKey)) {
+                    uniqueTrades.set(marketKey, trade);
+                  }
+                });
+              
+              // Create a decision for each unique trade (up to 5 most recent)
+              const uniqueTradesArray = Array.from(uniqueTrades.values()).slice(0, 5);
+              
+              uniqueTradesArray.forEach((trade: any, index: number) => {
                 const agent = data.agents?.find((a: any) => a.id === agentId);
+                
+                // Truncate reasoning to first 2-3 bullets or 150 chars
+                let reasoningText = '';
+                if (Array.isArray(trade.reasoning)) {
+                  // Take first 2-3 bullets, max 150 chars
+                  const bullets = trade.reasoning.slice(0, 3);
+                  reasoningText = bullets.join(' ').substring(0, 150);
+                  if (reasoningText.length === 150) reasoningText += '...';
+                } else if (trade.reasoning) {
+                  reasoningText = trade.reasoning.substring(0, 150);
+                  if (reasoningText.length === 150) reasoningText += '...';
+                } else {
+                  reasoningText = 'Analysis based on market data';
+                }
+                
                 newDecisions.push({
-                  id: agentId,
+                  id: `${agentId}-${trade.id}-${index}`, // Unique ID per trade
                   agentName: agent?.displayName || agentId,
                   agentEmoji: agent?.avatar || '🤖',
-                  timestamp: new Date(recentTrade.openedAt),
+                  timestamp: new Date(trade.openedAt),
                   action: 'TRADE',
-                  market: recentTrade.marketId || 'Unknown Market',
-                  decision: recentTrade.side,
-                  confidence: Math.round(recentTrade.confidence * 100),
-                  reasoning: Array.isArray(recentTrade.reasoning) 
-                    ? recentTrade.reasoning.join(' ') 
-                    : recentTrade.reasoning || 'No reasoning provided',
-                  decisionHistory: trades
-                    .filter((t: any) => t.status === 'OPEN')
-                    .slice(0, 3)
-                    .map((t: any) => ({
-                      id: t.id,
-                      timestamp: new Date(t.openedAt),
-                      market: t.marketId || 'Unknown Market',
-                      decision: t.side,
-                      confidence: Math.round(t.confidence * 100),
-                      reasoning: Array.isArray(t.reasoning) 
-                        ? t.reasoning.join(' ') 
-                        : t.reasoning || 'No reasoning provided',
-                    })),
+                  market: trade.marketQuestion || trade.marketId || 'Unknown Market',
+                  decision: trade.side,
+                  confidence: Math.round(trade.confidence * 100),
+                  reasoning: reasoningText,
+                  decisionHistory: [], // Don't show nested history to avoid clutter
                 });
-              }
+              });
             }
           }
           
@@ -343,8 +360,8 @@ export const AISummaryPanel = () => {
     };
     
     loadSummary();
-    // Refresh every 30 seconds
-    const interval = setInterval(loadSummary, 30 * 1000);
+    // Refresh every 10 seconds for more live updates
+    const interval = setInterval(loadSummary, 10 * 1000);
     return () => clearInterval(interval);
   }, []);
 

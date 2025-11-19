@@ -234,6 +234,11 @@ export const AgentTradesPanel = ({ agentId, agentName, agentEmoji, trades, onClo
                             {trade.pnl >= 0 ? '+' : ''}{trade.pnl.toFixed(4)} SOL
                           </div>
                         )}
+                        {trade.investmentUsd !== undefined && trade.investmentUsd > 0 && (
+                          <div className="px-2 py-0.5 rounded-lg text-[11px] font-mono bg-muted text-foreground border border-border" style={{ pointerEvents: 'none' }}>
+                            ${trade.investmentUsd.toFixed(0)}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="text-[10px] text-muted-foreground font-mono flex-shrink-0 ml-2" style={{ pointerEvents: 'none' }}>

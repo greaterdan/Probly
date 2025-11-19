@@ -35,16 +35,22 @@ interface MarketDetailsPanelProps {
   };
   onClose: () => void;
   onWatchlistChange?: () => void;
+  watchlist?: PredictionNodeData[]; // Pass watchlist to check if market is in it
 }
 
-export const MarketDetailsPanel = ({ market, onClose, onWatchlistChange }: MarketDetailsPanelProps) => {
+export const MarketDetailsPanel = ({ market, onClose, onWatchlistChange, watchlist }: MarketDetailsPanelProps) => {
   const [isWatched, setIsWatched] = useState(false);
 
   useEffect(() => {
     if (market) {
-      setIsWatched(isInWatchlist(market.id));
+      // Check if market is in watchlist (use prop if provided, otherwise check localStorage)
+      if (watchlist) {
+        setIsWatched(watchlist.some(m => m.id === market.id));
+      } else {
+        setIsWatched(isInWatchlist(market.id));
+      }
     }
-  }, [market]);
+  }, [market, watchlist]);
 
   const handleToggleWatchlist = () => {
     if (!market) return;

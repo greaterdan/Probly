@@ -475,9 +475,10 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
             return (
               <motion.div
                 key={decision.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                initial={{ opacity: 0, y: -20, scale: 0.95 }} // Start from top (new items appear at top)
+                animate={{ opacity: 1, y: 0, scale: 1 }} // Animate into position
+                exit={{ opacity: 0, y: 20, scale: 0.95 }} // Exit downward (old items scroll down)
+                transition={{ duration: 0.3, ease: "easeOut" }} // Smooth animation
                 className="bg-bg-elevated border border-border rounded-xl overflow-hidden hover:border-terminal-accent/50 transition-colors"
               >
                 {/* Clickable Header - Always expandable to show decision details */}

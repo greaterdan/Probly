@@ -140,13 +140,34 @@ export async function generateAgentTrades(agentId: AgentId): Promise<AgentTrade[
     console.log(`[Agent:${agentId}]      Components: Vol:${m.components.volumeScore.toFixed(1)} Liq:${m.components.liquidityScore.toFixed(1)} News:${m.components.newsScore.toFixed(1)} Prob:${m.components.probScore.toFixed(1)}`);
   });
   
-  // Take top markets (use relative threshold - take top N regardless of absolute score)
-  // This ensures agents can trade even if all scores are relatively low
-  const topMarkets = scoredMarkets.slice(0, agent.maxTrades * 2);
-  console.log(`[Agent:${agentId}] 🎯 Selected top ${topMarkets.length} markets for trade generation (top score: ${topScore.toFixed(1)})`);
+  // Select markets with rotation to avoid always picking the same ones
+  // Take top markets but add some randomness to explore different markets
+  const selectionSize = Math.min(agent.maxTrades * 3, scoredMarkets.length);
+  const topMarkets = scoredMarkets.slice(0, selectionSize);
+  
+  // Add rotation: shuffle top markets slightly to explore different markets each time
+  // This ensures agents research different markets, not just the same top ones
+  const shuffled = [...topMarkets];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    // Only shuffle within score bands to maintain quality
+    const scoreBand = Math.floor(shuffled[i].score / 5); // Group by 5-point score bands
+    const prevScoreBand = Math.floor(shuffled[i - 1].score / 5);
+    
+    // Only shuffle if in same score band (maintains quality while adding variety)
+    if (scoreBand === prevScoreBand && Math.random() < 0.3) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+  }
+  
+  // Take top N after slight shuffle (still prioritize high scores but add variety)
+  const selectedMarkets = shuffled.slice(0, agent.maxTrades * 2);
+  
+  console.log(`[Agent:${agentId}] 🎯 Selected ${selectedMarkets.length} markets for trade generation (top score: ${topScore.toFixed(1)})`);
+  console.log(`[Agent:${agentId}] 🔄 Market rotation applied - exploring different markets each cycle`);
   
   // If top score is very low, log a warning but still proceed
-  if (topScore < 15 && topMarkets.length > 0) {
+  if (topScore < 15 && selectedMarkets.length > 0) {
     console.warn(`[Agent:${agentId}] ⚠️ Top market score is low (${topScore.toFixed(1)}), but proceeding with top markets anyway`);
   }
   
@@ -154,9 +175,9 @@ export async function generateAgentTrades(agentId: AgentId): Promise<AgentTrade[
   const nowMs = Date.now();
   const trades: AgentTrade[] = [];
   
-  console.log(`[Agent:${agentId}] 🤖 Generating trades for ${topMarkets.length} markets...`);
-  for (let i = 0; i < topMarkets.length; i++) {
-    const scored = topMarkets[i];
+  console.log(`[Agent:${agentId}] 🤖 Generating trades for ${selectedMarkets.length} markets...`);
+  for (let i = 0; i < selectedMarkets.length; i++) {
+    const scored = selectedMarkets[i];
     console.log(`[Agent:${agentId}] 📝 Processing market ${i + 1}/${topMarkets.length}: "${scored.question.substring(0, 50)}..." (score: ${scored.score.toFixed(1)})`);
     
     // News relevance still computed for reasoning (legacy compatibility)

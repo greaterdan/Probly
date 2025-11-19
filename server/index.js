@@ -170,10 +170,14 @@ app.use(cors({
 // Security: Rate limiting
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 200, // Increased limit: 200 requests per 15 minutes per IP
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for healthcheck and auth endpoints
+    return req.path === '/health' || req.path === '/auth/me';
+  },
 });
 
 const predictionsLimiter = rateLimit({
@@ -188,10 +192,10 @@ const waitlistLimiter = rateLimit({
   message: 'Too many waitlist submissions, please try again later.',
 });
 
-// Apply rate limiting to API routes (but NOT /api/health - healthchecks need to work)
+// Apply rate limiting to API routes (but NOT /api/health or /api/auth/me - healthchecks and auth checks need to work)
 app.use('/api/', (req, res, next) => {
-  // Skip rate limiting for healthcheck endpoint
-  if (req.path === '/health') {
+  // Skip rate limiting for healthcheck and auth endpoints
+  if (req.path === '/health' || req.path === '/auth/me') {
     return next();
   }
   apiLimiter(req, res, next);

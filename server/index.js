@@ -294,11 +294,13 @@ app.use(session({
   secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
+  name: 'connect.sid', // Explicit session cookie name
   cookie: {
     secure: isProduction, // Only send over HTTPS in production
     httpOnly: true, // Prevent XSS attacks
-    sameSite: 'lax', // CSRF protection
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax', // CSRF protection - allows redirects from Google OAuth
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours - session persists across browser restarts
+    // Don't set domain - let browser handle it automatically for current domain
   },
 }));
 

@@ -48,78 +48,90 @@ export const SystemStatusBar = ({
   };
 
   useEffect(() => {
-    // Check if user is already logged in (from localStorage or OAuth session)
+    // Always check server session first to ensure we have the latest auth state
     const checkAuth = async () => {
-    const storedEmail = localStorage.getItem('userEmail');
-    
-      // First check localStorage for email
-      if (storedEmail) {
-      setIsLoggedIn(true);
-        setUserEmail(storedEmail);
-      
-        // Get or create wallet for this email
-        // This ensures the same email always gets the same wallet
-        let wallet = getStoredWallet(storedEmail);
-      
-      if (!wallet) {
-          wallet = getOrCreateWallet(storedEmail);
-        }
-        
-        // Store as custodial wallet for persistence
-        storeCustodialWallet(wallet);
-      
-      setCustodialWallet({
-        publicKey: wallet.publicKey,
-        privateKey: wallet.privateKey,
-      });
-    } else {
-        // Check for OAuth session (Google login)
-        try {
-          const { API_BASE_URL } = await import('@/lib/apiConfig');
-          const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-            credentials: 'include',
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.authenticated && data.user?.email) {
-              // User is logged in via OAuth
-              setIsLoggedIn(true);
-              setUserEmail(data.user.email);
-              localStorage.setItem('userEmail', data.user.email);
-              
-              // Get or create wallet for this email
-              // This ensures the same email always gets the same wallet
-              let wallet = getStoredWallet(data.user.email);
-              
-              if (!wallet) {
-                wallet = getOrCreateWallet(data.user.email);
-              }
-              
-              // Store as custodial wallet for persistence
-              storeCustodialWallet(wallet);
-              
-              setCustodialWallet({
-                publicKey: wallet.publicKey,
-                privateKey: wallet.privateKey,
-              });
-            }
-          }
-        } catch (error) {
-          // Silently fail - user might not be logged in
-          console.debug('OAuth check failed:', error);
-        }
-        
-      // Check if there's a stored custodial wallet even without login
-      // (for backwards compatibility)
-      const storedCustodialWallet = getCustodialWallet();
-      if (storedCustodialWallet) {
-        setCustodialWallet({
-          publicKey: storedCustodialWallet.publicKey,
-          privateKey: storedCustodialWallet.privateKey,
+      try {
+        const { API_BASE_URL } = await import('@/lib/apiConfig');
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          credentials: 'include', // Important: include cookies for session
         });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.authenticated && data.user?.email) {
+            // User is logged in via OAuth session
+            setIsLoggedIn(true);
+            setUserEmail(data.user.email);
+            // Update localStorage to match server session
+            localStorage.setItem('userEmail', data.user.email);
+            
+            // Get or create wallet for this email
+            // This ensures the same email always gets the same wallet
+            let wallet = getStoredWallet(data.user.email);
+            
+            if (!wallet) {
+              wallet = getOrCreateWallet(data.user.email);
+            }
+            
+            // Store as custodial wallet for persistence
+            storeCustodialWallet(wallet);
+            
+            setCustodialWallet({
+              publicKey: wallet.publicKey,
+              privateKey: wallet.privateKey,
+            });
+            return; // Exit early if authenticated
+          }
+        }
+        
+        // If we get here, user is not authenticated on server
+        // Clear any stale localStorage data
+        const storedEmail = localStorage.getItem('userEmail');
+        if (storedEmail) {
+          // Server says not authenticated, but localStorage has email - clear it
+          localStorage.removeItem('userEmail');
+        }
+        
+        setIsLoggedIn(false);
+        setUserEmail(undefined);
+        
+        // Check if there's a stored custodial wallet (for backwards compatibility)
+        // but don't set logged in state
+        const storedCustodialWallet = getCustodialWallet();
+        if (storedCustodialWallet) {
+          setCustodialWallet({
+            publicKey: storedCustodialWallet.publicKey,
+            privateKey: storedCustodialWallet.privateKey,
+          });
+        } else {
+          setCustodialWallet(null);
+        }
+      } catch (error) {
+        // Network error or server unavailable
+        console.debug('Auth check failed:', error);
+        
+        // Fallback: check localStorage as backup (but this is less reliable)
+        const storedEmail = localStorage.getItem('userEmail');
+        if (storedEmail) {
+          // Use localStorage as fallback if server check fails
+          setIsLoggedIn(true);
+          setUserEmail(storedEmail);
+          
+          let wallet = getStoredWallet(storedEmail);
+          if (!wallet) {
+            wallet = getOrCreateWallet(storedEmail);
+          }
+          
+          storeCustodialWallet(wallet);
+          setCustodialWallet({
+            publicKey: wallet.publicKey,
+            privateKey: wallet.privateKey,
+          });
+        } else {
+          setIsLoggedIn(false);
+          setUserEmail(undefined);
+        }
       }
-    }
     };
     
     checkAuth();

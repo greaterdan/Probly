@@ -779,9 +779,9 @@ const fetchNewsAPI = async () => {
     console.warn('NEWS_API_KEY not configured, skipping NewsAPI');
     return [];
   }
-  // Get date from last 24 hours for freshest news
+  // Get date from last 7 days for better news coverage
   const fromDate = new Date();
-  fromDate.setHours(fromDate.getHours() - 24); // Last 24 hours
+  fromDate.setDate(fromDate.getDate() - 7); // Last 7 days
   const fromDateStr = fromDate.toISOString();
   
   // Get current date for 'to' parameter
@@ -818,11 +818,13 @@ const fetchNewsAPI = async () => {
         const now = new Date();
         const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
         
+        // Relaxed to 7 days to get more articles
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         return data.articles
           .filter(article => {
             if (!article.publishedAt) return false;
             const publishedDate = new Date(article.publishedAt);
-            return publishedDate >= twentyFourHoursAgo;
+            return publishedDate >= sevenDaysAgo;
           })
           .map(article => ({
             ...article,

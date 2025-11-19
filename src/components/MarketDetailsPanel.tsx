@@ -161,13 +161,13 @@ export const MarketDetailsPanel = ({ market, onClose, onWatchlistChange, watchli
               <Star className={`w-3.5 h-3.5 ${isWatched ? 'fill-terminal-accent' : ''}`} />
             </button>
           )}
-          <button
-            onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center border border-border hover:bg-muted rounded transition-colors flex-shrink-0"
-            title="Close"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+        <button
+          onClick={onClose}
+          className="w-7 h-7 flex items-center justify-center border border-border hover:bg-muted rounded transition-colors flex-shrink-0"
+          title="Close"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
         </div>
       </div>
 

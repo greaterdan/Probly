@@ -139,6 +139,10 @@ export const NewsFeed = () => {
     } catch (error) {
       // Log error for debugging
       console.error('Error fetching news:', error);
+      // If we have no news and there's an error, show a helpful message
+      if (allNews.length === 0) {
+        console.warn('No news available - check if news API keys are configured on the server');
+      }
       // Keep existing news on error
     } finally {
       setLoading(false);

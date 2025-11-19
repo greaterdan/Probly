@@ -1091,11 +1091,17 @@ app.get('/api/news', async (req, res) => {
     // Final filter: Only show articles from last 7 days (more flexible than 24 hours)
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const beforeFilter = allArticles.length;
     allArticles = allArticles.filter(article => {
       if (!article.publishedAt) return false;
       const publishedDate = new Date(article.publishedAt);
       return publishedDate >= sevenDaysAgo;
     });
+    
+    // Log if filter removed many articles (only occasionally)
+    if (beforeFilter > 0 && allArticles.length === 0 && Math.random() < 0.1) {
+      console.warn(`[NEWS] All ${beforeFilter} articles were filtered out (older than 7 days)`);
+    }
     
     // Sort by published date (newest first)
     allArticles.sort((a, b) => {

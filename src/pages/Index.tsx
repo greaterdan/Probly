@@ -1087,6 +1087,7 @@ const Index = () => {
                   onWatchlistChange={() => {
                     setWatchlist(getWatchlist());
                   }}
+                  watchlist={watchlist}
                 />
               ) : (
                 <PerformanceChart 

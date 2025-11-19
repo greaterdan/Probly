@@ -1244,7 +1244,8 @@ const fetchGNews = async () => {
     'prediction OR election',
     'cryptocurrency OR bitcoin OR ethereum OR crypto OR blockchain OR stock market',
     'technology OR economy',
-    'sports OR climate'
+    'sports', // Dedicated sports query
+    'climate'
   ];
   
   // Fetch sequentially with delays to avoid rate limits

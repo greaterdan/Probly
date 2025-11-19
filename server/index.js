@@ -44,7 +44,7 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { fetchAllMarkets } from './services/polymarketService.js';
 import { transformMarkets } from './services/marketTransformer.js';
 import { mapCategoryToPolymarket } from './utils/categoryMapper.js';
-import { getAgentTrades, getAgentsSummary } from './api/agents.js';
+import { getAgentTrades, getAgentsSummary, getAgentsStats } from './api/agents.js';
 
 // Get directory paths for ES modules
 const __filename = fileURLToPath(import.meta.url);

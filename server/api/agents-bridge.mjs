@@ -18,7 +18,7 @@ try {
   // tsx not available - will try direct import
 }
 
-let generateAgentTrades, getAgentProfile, isValidAgentId, ALL_AGENT_IDS, buildAgentSummary, computeSummaryStats;
+let generateAgentTrades, getAgentProfile, isValidAgentId, ALL_AGENT_IDS, buildAgentSummary, computeSummaryStats, calculateAllAgentStats;
 
 try {
   // Import TypeScript modules (tsx will handle .ts extension)
@@ -32,6 +32,9 @@ try {
   
   const summaryModule = await import('../../src/lib/agents/summary.ts');
   console.log('[API] summary.ts loaded, exports:', Object.keys(summaryModule));
+  
+  const statsModule = await import('../../src/lib/agents/stats.ts');
+  console.log('[API] stats.ts loaded, exports:', Object.keys(statsModule));
   
   // Verify exports exist
   if (!agentsModule.generateAgentTrades) {
@@ -52,6 +55,9 @@ try {
   if (!summaryModule.computeSummaryStats) {
     throw new Error('computeSummaryStats not found in summary.ts');
   }
+  if (!statsModule.calculateAllAgentStats) {
+    throw new Error('calculateAllAgentStats not found in stats.ts');
+  }
   
   generateAgentTrades = agentsModule.generateAgentTrades;
   getAgentProfile = domainModule.getAgentProfile;
@@ -59,6 +65,7 @@ try {
   ALL_AGENT_IDS = domainModule.ALL_AGENT_IDS;
   buildAgentSummary = summaryModule.buildAgentSummary;
   computeSummaryStats = summaryModule.computeSummaryStats;
+  calculateAllAgentStats = statsModule.calculateAllAgentStats;
   
   console.log('[API] ✅ Successfully loaded TypeScript trading engine modules');
   console.log('[API] generateAgentTrades type:', typeof generateAgentTrades);
@@ -76,4 +83,5 @@ export {
   ALL_AGENT_IDS,
   buildAgentSummary,
   computeSummaryStats,
+  calculateAllAgentStats,
 };

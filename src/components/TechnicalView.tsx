@@ -1,4 +1,6 @@
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from "recharts";
+import { useState, useEffect } from "react";
+import { API_BASE_URL } from "@/lib/apiConfig";
 
 const AGENT_LOGO: Record<string, string> = {
   deepseek: "/deepseek.png",
@@ -196,8 +198,130 @@ const AgentCard = ({ agent, index }: { agent: AgentStats; index: number }) => (
 );
 
 export const TechnicalView = () => {
-  const topAgents = mockAgentStats.slice(0, 3); // First 3 agents
-  const bottomAgents = mockAgentStats.slice(3, 6); // Last 3 agents
+  const [agentStats, setAgentStats] = useState<AgentStats[]>(mockAgentStats);
+  const [loading, setLoading] = useState(true);
+  
+  // Fetch real agent stats from API
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_BASE_URL}/api/agents/stats`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.agents && Array.isArray(data.agents)) {
+            setAgentStats(data.agents);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch agent stats:', error);
+        // Keep mock data on error
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadStats();
+    // Refresh every 30 seconds
+    const interval = setInterval(loadStats, 30 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+  
+  // Sort by P&L (descending) to get top/bottom agents
+  const sortedStats = [...agentStats].sort((a, b) => b.pnl - a.pnl);
+  const topAgents = sortedStats.slice(0, 3); // Top 3 by P&L
+  const bottomAgents = sortedStats.slice(3, 6); // Bottom 3 by P&L
+  
+  // Calculate performance data for charts (using top 3 agents)
+  const performanceData = [
+    { 
+      metric: "Win Rate", 
+      deepseek: topAgents.find(a => a.id === 'deepseek')?.winRate || 0,
+      claude: topAgents.find(a => a.id === 'claude')?.winRate || 0,
+      qwen: topAgents.find(a => a.id === 'qwen')?.winRate || 0,
+      gemini: bottomAgents.find(a => a.id === 'gemini')?.winRate || 0,
+      grok: bottomAgents.find(a => a.id === 'grok')?.winRate || 0,
+      gpt5: bottomAgents.find(a => a.id === 'gpt5')?.winRate || 0,
+    },
+    { 
+      metric: "ROI", 
+      deepseek: topAgents.find(a => a.id === 'deepseek')?.pnl || 0,
+      claude: topAgents.find(a => a.id === 'claude')?.pnl || 0,
+      qwen: topAgents.find(a => a.id === 'qwen')?.pnl || 0,
+      gemini: bottomAgents.find(a => a.id === 'gemini')?.pnl || 0,
+      grok: bottomAgents.find(a => a.id === 'grok')?.pnl || 0,
+      gpt5: bottomAgents.find(a => a.id === 'gpt5')?.pnl || 0,
+    },
+    { 
+      metric: "Balance %", 
+      deepseek: topAgents.find(a => a.id === 'deepseek') ? (topAgents.find(a => a.id === 'deepseek')!.total / 3000) * 100 : 0,
+      claude: topAgents.find(a => a.id === 'claude') ? (topAgents.find(a => a.id === 'claude')!.total / 3000) * 100 : 0,
+      qwen: topAgents.find(a => a.id === 'qwen') ? (topAgents.find(a => a.id === 'qwen')!.total / 3000) * 100 : 0,
+      gemini: bottomAgents.find(a => a.id === 'gemini') ? (bottomAgents.find(a => a.id === 'gemini')!.total / 3000) * 100 : 0,
+      grok: bottomAgents.find(a => a.id === 'grok') ? (bottomAgents.find(a => a.id === 'grok')!.total / 3000) * 100 : 0,
+      gpt5: bottomAgents.find(a => a.id === 'gpt5') ? (bottomAgents.find(a => a.id === 'gpt5')!.total / 3000) * 100 : 0,
+    },
+  ];
+  
+  const tradingActivityData = [
+    { 
+      metric: "Total Trades", 
+      deepseek: topAgents.find(a => a.id === 'deepseek')?.calls || 0,
+      claude: topAgents.find(a => a.id === 'claude')?.calls || 0,
+      qwen: topAgents.find(a => a.id === 'qwen')?.calls || 0,
+      gemini: bottomAgents.find(a => a.id === 'gemini')?.calls || 0,
+      grok: bottomAgents.find(a => a.id === 'grok')?.calls || 0,
+      gpt5: bottomAgents.find(a => a.id === 'gpt5')?.calls || 0,
+    },
+    { 
+      metric: "Losses", 
+      deepseek: topAgents.find(a => a.id === 'deepseek')?.losses || 0,
+      claude: topAgents.find(a => a.id === 'claude')?.losses || 0,
+      qwen: topAgents.find(a => a.id === 'qwen')?.losses || 0,
+      gemini: bottomAgents.find(a => a.id === 'gemini')?.losses || 0,
+      grok: bottomAgents.find(a => a.id === 'grok')?.losses || 0,
+      gpt5: bottomAgents.find(a => a.id === 'gpt5')?.losses || 0,
+    },
+    { 
+      metric: "Wins", 
+      deepseek: topAgents.find(a => a.id === 'deepseek')?.wins || 0,
+      claude: topAgents.find(a => a.id === 'claude')?.wins || 0,
+      qwen: topAgents.find(a => a.id === 'qwen')?.wins || 0,
+      gemini: bottomAgents.find(a => a.id === 'gemini')?.wins || 0,
+      grok: bottomAgents.find(a => a.id === 'grok')?.wins || 0,
+      gpt5: bottomAgents.find(a => a.id === 'gpt5')?.wins || 0,
+    },
+  ];
+  
+  const riskMetricsData = [
+    { 
+      metric: "Max Exposure", 
+      deepseek: topAgents.find(a => a.id === 'deepseek')?.maxExposure || 0,
+      claude: topAgents.find(a => a.id === 'claude')?.maxExposure || 0,
+      qwen: topAgents.find(a => a.id === 'qwen')?.maxExposure || 0,
+      gemini: bottomAgents.find(a => a.id === 'gemini')?.maxExposure || 0,
+      grok: bottomAgents.find(a => a.id === 'grok')?.maxExposure || 0,
+      gpt5: bottomAgents.find(a => a.id === 'gpt5')?.maxExposure || 0,
+    },
+    { 
+      metric: "P&L Norm.", 
+      deepseek: topAgents.find(a => a.id === 'deepseek')?.pnl || 0,
+      claude: topAgents.find(a => a.id === 'claude')?.pnl || 0,
+      qwen: topAgents.find(a => a.id === 'qwen')?.pnl || 0,
+      gemini: bottomAgents.find(a => a.id === 'gemini')?.pnl || 0,
+      grok: bottomAgents.find(a => a.id === 'grok')?.pnl || 0,
+      gpt5: bottomAgents.find(a => a.id === 'gpt5')?.pnl || 0,
+    },
+    { 
+      metric: "W/L Ratio", 
+      deepseek: topAgents.find(a => a.id === 'deepseek') ? (topAgents.find(a => a.id === 'deepseek')!.wins / Math.max(1, topAgents.find(a => a.id === 'deepseek')!.losses)) * 100 : 0,
+      claude: topAgents.find(a => a.id === 'claude') ? (topAgents.find(a => a.id === 'claude')!.wins / Math.max(1, topAgents.find(a => a.id === 'claude')!.losses)) * 100 : 0,
+      qwen: topAgents.find(a => a.id === 'qwen') ? (topAgents.find(a => a.id === 'qwen')!.wins / Math.max(1, topAgents.find(a => a.id === 'qwen')!.losses)) * 100 : 0,
+      gemini: bottomAgents.find(a => a.id === 'gemini') ? (bottomAgents.find(a => a.id === 'gemini')!.wins / Math.max(1, bottomAgents.find(a => a.id === 'gemini')!.losses)) * 100 : 0,
+      grok: bottomAgents.find(a => a.id === 'grok') ? (bottomAgents.find(a => a.id === 'grok')!.wins / Math.max(1, bottomAgents.find(a => a.id === 'grok')!.losses)) * 100 : 0,
+      gpt5: bottomAgents.find(a => a.id === 'gpt5') ? (bottomAgents.find(a => a.id === 'gpt5')!.wins / Math.max(1, bottomAgents.find(a => a.id === 'gpt5')!.losses)) * 100 : 0,
+    },
+  ];
 
   return (
     <div className="h-full flex flex-col bg-background overflow-hidden">

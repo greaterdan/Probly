@@ -7,7 +7,7 @@
  */
 
 // Import TypeScript modules via bridge (uses tsx)
-let generateAgentTrades, getAgentProfile, isValidAgentId, ALL_AGENT_IDS, buildAgentSummary, computeSummaryStats;
+let generateAgentTrades, getAgentProfile, isValidAgentId, ALL_AGENT_IDS, buildAgentSummary, computeSummaryStats, calculateAllAgentStats;
 
 try {
   // Try to import via tsx bridge
@@ -39,6 +39,7 @@ try {
   ALL_AGENT_IDS = bridge.ALL_AGENT_IDS;
   buildAgentSummary = bridge.buildAgentSummary;
   computeSummaryStats = bridge.computeSummaryStats;
+  calculateAllAgentStats = bridge.calculateAllAgentStats;
   
   console.log('[API] ✅ TypeScript modules loaded successfully');
 } catch (error) {

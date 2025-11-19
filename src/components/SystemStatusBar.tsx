@@ -71,11 +71,8 @@ export const SystemStatusBar = ({
       
             // Get or create wallet for this email
             // This ensures the same email always gets the same wallet
-            let wallet = getStoredWallet(data.user.email);
-      
-      if (!wallet) {
-              wallet = getOrCreateWallet(data.user.email);
-      }
+            // Check server first, then localStorage
+            const wallet = await getOrCreateWallet(data.user.email);
             
             // Store as custodial wallet for persistence
             storeCustodialWallet(wallet);
@@ -121,10 +118,8 @@ export const SystemStatusBar = ({
           setIsLoggedIn(true);
           setUserEmail(storedEmail);
           
-          let wallet = getStoredWallet(storedEmail);
-          if (!wallet) {
-            wallet = getOrCreateWallet(storedEmail);
-          }
+          // Get or create wallet (checks server first, then localStorage)
+          const wallet = await getOrCreateWallet(storedEmail);
           
           storeCustodialWallet(wallet);
           setCustodialWallet({
@@ -141,19 +136,15 @@ export const SystemStatusBar = ({
     checkAuth();
   }, []);
 
-  const handleLogin = (email: string) => {
+  const handleLogin = async (email: string) => {
     setIsLoggedIn(true);
     setUserEmail(email);
     localStorage.setItem('userEmail', email);
     
     // Get or create wallet for this email address
     // This ensures the same email always gets the same wallet
-    let wallet = getStoredWallet(email);
-    
-    if (!wallet) {
-      // Create new wallet for this email
-      wallet = getOrCreateWallet(email);
-    }
+    // Checks server first, then localStorage
+    const wallet = await getOrCreateWallet(email);
     
     // Store as custodial wallet for persistence
     storeCustodialWallet(wallet);

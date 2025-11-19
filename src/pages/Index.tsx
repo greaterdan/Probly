@@ -583,7 +583,7 @@ const Index = () => {
 
   // Get custodial wallet from localStorage when logged in
   useEffect(() => {
-    const checkWallet = () => {
+    const checkWallet = async () => {
       // First, try to get stored custodial wallet directly
       let wallet = getCustodialWallet();
       
@@ -593,7 +593,7 @@ const Index = () => {
       const storedWallet = localStorage.getItem('walletAddress');
       if (storedEmail || storedWallet) {
         const userId = storedEmail || storedWallet || 'default';
-          wallet = getOrCreateWallet(userId);
+          wallet = await getOrCreateWallet(userId);
           // Store it as the main custodial wallet
           storeCustodialWallet(wallet);
         }
@@ -610,7 +610,9 @@ const Index = () => {
     };
     checkWallet();
     // Check periodically - reduced frequency to prevent performance issues
-    const interval = setInterval(checkWallet, 5000);
+    const interval = setInterval(() => {
+      checkWallet().catch(console.error);
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 

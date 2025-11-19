@@ -74,14 +74,86 @@ export function getStoredWallet(userId: string): WalletData | null {
 }
 
 /**
- * Get or create wallet for user
+ * Get or create wallet for user - checks server first, then localStorage
  */
-export function getOrCreateWallet(userId: string): WalletData {
+export async function getOrCreateWallet(userId: string): Promise<WalletData> {
+  // First, try to get wallet from server
+  try {
+    const { API_BASE_URL } = await import('@/lib/apiConfig');
+    const response = await fetch(`${API_BASE_URL}/api/wallet`, {
+      method: 'GET',
+      credentials: 'include', // Include cookies for authentication
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success && data.wallet) {
+        // Wallet found on server - restore it
+        const wallet = restoreWallet(data.wallet.privateKey);
+        // Also store locally as backup
+        storeWallet(wallet, userId);
+        return wallet;
+      }
+    }
+  } catch (error) {
+    // Server unavailable - fallback to localStorage
+    console.debug('Server wallet fetch failed, using localStorage:', error);
+  }
+  
+  // Fallback: check localStorage
   let wallet = getStoredWallet(userId);
   
   if (!wallet) {
+    // Create new wallet
     wallet = generateWallet();
     storeWallet(wallet, userId);
+    
+    // Try to save to server (don't wait for it)
+    try {
+      const { API_BASE_URL } = await import('@/lib/apiConfig');
+      fetch(`${API_BASE_URL}/api/wallet`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          publicKey: wallet.publicKey,
+          privateKey: wallet.privateKey,
+        }),
+      }).catch((err) => {
+        // Silent fail - wallet is stored locally
+        console.debug('Failed to save wallet to server:', err);
+      });
+    } catch (error) {
+      // Silent fail
+      console.debug('Failed to save wallet to server:', error);
+    }
+  } else {
+    // Wallet found in localStorage - try to sync to server (don't wait)
+    try {
+      const { API_BASE_URL } = await import('@/lib/apiConfig');
+      fetch(`${API_BASE_URL}/api/wallet`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          publicKey: wallet.publicKey,
+          privateKey: wallet.privateKey,
+        }),
+      }).catch((err) => {
+        // Silent fail
+        console.debug('Failed to sync wallet to server:', err);
+      });
+    } catch (error) {
+      // Silent fail
+      console.debug('Failed to sync wallet to server:', error);
+    }
   }
   
   return wallet;

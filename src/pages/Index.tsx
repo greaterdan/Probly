@@ -61,7 +61,7 @@ const Index = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
-    }, 300); // 300ms delay after user stops typing
+    }, 200); // 200ms delay after user stops typing - faster response
     
     return () => clearTimeout(timer);
   }, [searchQuery]);

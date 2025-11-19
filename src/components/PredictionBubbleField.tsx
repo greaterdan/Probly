@@ -15,7 +15,7 @@ type Props = {
   isResizing?: boolean; // CRITICAL: Prevent recalculations during panel resize
 };
 
-export const PredictionBubbleField: React.FC<Props> = ({
+const PredictionBubbleFieldComponent: React.FC<Props> = ({
   markets,
   onBubbleClick,
   selectedNodeId,
@@ -481,12 +481,8 @@ export const PredictionBubbleField: React.FC<Props> = ({
         }
       };
       
-      // Start rendering after a short delay
-      const timeout = setTimeout(() => {
-        requestAnimationFrame(renderNextBatch);
-      }, 150); // Longer initial delay
-      
-      return () => clearTimeout(timeout);
+      // Start rendering immediately for faster appearance
+      requestAnimationFrame(renderNextBatch);
     } else {
       // For smaller counts, render all immediately
       setRenderedCount(bubbles.length);
@@ -1121,3 +1117,31 @@ export const PredictionBubbleField: React.FC<Props> = ({
     </div>
   );
 };
+
+// Memoize component to prevent unnecessary re-renders when props haven't actually changed
+// React.memo: return true = props are equal (skip re-render), false = props changed (allow re-render)
+export const PredictionBubbleField = React.memo(PredictionBubbleFieldComponent, (prevProps, nextProps) => {
+  // Always allow re-render if transitioning/resizing state changes
+  if (prevProps.isTransitioning !== nextProps.isTransitioning || prevProps.isResizing !== nextProps.isResizing) {
+    return false; // Props changed, allow re-render
+  }
+  
+  // Compare markets array length and IDs - if same markets, skip expensive re-render
+  if (prevProps.markets.length !== nextProps.markets.length) {
+    return false; // Different number of markets, allow re-render
+  }
+  
+  // Check if it's the same markets (by ID) - if yes, skip re-render for data-only updates
+  const prevIds = new Set(prevProps.markets.map(m => m.id ?? '').filter(Boolean));
+  const nextIds = new Set(nextProps.markets.map(m => m.id ?? '').filter(Boolean));
+  
+  if (prevIds.size === nextIds.size && [...prevIds].every(id => nextIds.has(id))) {
+    // Same markets - only re-render if selection changed
+    if (prevProps.selectedNodeId === nextProps.selectedNodeId && 
+        prevProps.selectedAgent === nextProps.selectedAgent) {
+      return true; // Props are equal (same markets, same selection), skip re-render
+    }
+  }
+  
+  return false; // Props changed, allow re-render
+});

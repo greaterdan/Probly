@@ -457,6 +457,196 @@ if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
   });
 }
 
+// Wallet storage - store wallets server-side tied to Google email
+// Use Redis if available, otherwise fallback to in-memory (not recommended for production)
+let walletStorageClient = null;
+if (redisUrl) {
+  try {
+    // Create a separate Redis client for wallet storage
+    walletStorageClient = createClient({
+      url: redisUrl,
+      socket: {
+        lazyConnect: true,
+        reconnectStrategy: (retries) => {
+          if (retries > 3) return false;
+          return Math.min(retries * 100, 3000);
+        },
+      },
+    });
+    
+    walletStorageClient.on('error', (err) => {
+      console.error('[WALLET] Redis wallet storage error:', err.message);
+    });
+    
+    walletStorageClient.on('connect', () => {
+      console.log('[WALLET] ✅ Wallet storage Redis connected');
+    });
+    
+    // Try to connect in background
+    walletStorageClient.connect().catch((err) => {
+      console.warn('[WALLET] ⚠️  Wallet storage Redis connection failed, using in-memory fallback');
+    });
+    
+    console.log('[WALLET] ✅ Wallet storage configured (Redis)');
+  } catch (error) {
+    console.warn('[WALLET] ⚠️  Failed to create wallet storage Redis client:', error.message);
+    walletStorageClient = null;
+  }
+}
+
+// In-memory wallet storage fallback (only if Redis not available)
+const inMemoryWalletStorage = new Map();
+
+// Helper function to get wallet from storage
+async function getWalletFromStorage(email) {
+  if (!email) return null;
+  
+  const key = `wallet:${email}`;
+  
+  // Try Redis first
+  if (walletStorageClient) {
+    try {
+      const walletData = await walletStorageClient.get(key);
+      if (walletData) {
+        return JSON.parse(walletData);
+      }
+    } catch (error) {
+      console.warn('[WALLET] Redis get failed, trying in-memory:', error.message);
+    }
+  }
+  
+  // Fallback to in-memory
+  return inMemoryWalletStorage.get(key) || null;
+}
+
+// Helper function to save wallet to storage
+async function saveWalletToStorage(email, walletData) {
+  if (!email) return false;
+  
+  const key = `wallet:${email}`;
+  const data = JSON.stringify(walletData);
+  
+  // Try Redis first
+  if (walletStorageClient) {
+    try {
+      await walletStorageClient.set(key, data);
+      // Set expiration to 10 years (wallets should persist)
+      await walletStorageClient.expire(key, 10 * 365 * 24 * 60 * 60);
+      return true;
+    } catch (error) {
+      console.warn('[WALLET] Redis save failed, using in-memory:', error.message);
+    }
+  }
+  
+  // Fallback to in-memory
+  inMemoryWalletStorage.set(key, walletData);
+  return true;
+}
+
+// Wallet endpoints - require authentication
+// Get wallet for authenticated user
+app.get('/api/wallet', async (req, res) => {
+  try {
+    // Require authentication
+    if (!req.user || !req.user.email) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'You must be logged in to access your wallet',
+      });
+    }
+    
+    const email = req.user.email;
+    const wallet = await getWalletFromStorage(email);
+    
+    if (wallet) {
+      res.json({
+        success: true,
+        wallet: {
+          publicKey: wallet.publicKey,
+          privateKey: wallet.privateKey,
+        },
+      });
+    } else {
+      res.json({
+        success: true,
+        wallet: null,
+        message: 'No wallet found for this account',
+      });
+    }
+  } catch (error) {
+    console.error(`[${req.id}] Error getting wallet:`, error);
+    res.status(500).json({
+      error: isProduction ? 'Internal server error' : error.message,
+    });
+  }
+});
+
+// Create or update wallet for authenticated user
+app.post('/api/wallet', async (req, res) => {
+  try {
+    // Require authentication
+    if (!req.user || !req.user.email) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'You must be logged in to create a wallet',
+      });
+    }
+    
+    const email = req.user.email;
+    const { publicKey, privateKey } = req.body;
+    
+    // Validate wallet data
+    if (!publicKey || !privateKey) {
+      return res.status(400).json({
+        error: 'Invalid wallet data',
+        message: 'Both publicKey and privateKey are required',
+      });
+    }
+    
+    // Validate format (basic checks)
+    if (typeof publicKey !== 'string' || publicKey.length < 32) {
+      return res.status(400).json({
+        error: 'Invalid publicKey format',
+      });
+    }
+    
+    if (typeof privateKey !== 'string' || privateKey.length < 32) {
+      return res.status(400).json({
+        error: 'Invalid privateKey format',
+      });
+    }
+    
+    // Save wallet to storage
+    const saved = await saveWalletToStorage(email, {
+      publicKey,
+      privateKey,
+      createdAt: new Date().toISOString(),
+      email, // Store email for verification
+    });
+    
+    if (saved) {
+      console.log(`[WALLET] ✅ Wallet saved for ${email}`);
+      res.json({
+        success: true,
+        message: 'Wallet saved successfully',
+        wallet: {
+          publicKey,
+          // Don't send privateKey back in response for security
+        },
+      });
+    } else {
+      res.status(500).json({
+        error: 'Failed to save wallet',
+      });
+    }
+  } catch (error) {
+    console.error(`[${req.id}] Error saving wallet:`, error);
+    res.status(500).json({
+      error: isProduction ? 'Internal server error' : error.message,
+    });
+  }
+});
+
 // SECURITY: Add request ID for logging and tracking
 app.use((req, res, next) => {
   req.id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;

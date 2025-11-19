@@ -499,9 +499,10 @@ app.get('/api/predictions', predictionsLimiter, async (req, res) => {
     
     // Fetch markets from Polymarket - increased limits for better coverage
     // When searching, fetch more markets to increase search pool
+    // For "All Markets", fetch more to get better variety of YES/NO outcomes
     const maxMarkets = isSearching 
       ? 10000 // Fetch more markets when searching
-      : category === 'All Markets' ? 500 : 5000;
+      : category === 'All Markets' ? 3000 : 5000; // Increased from 500 to 3000 for better variety
     
     let markets = await fetchAllMarkets({
       category: polymarketCategory,
@@ -546,8 +547,9 @@ app.get('/api/predictions', predictionsLimiter, async (req, res) => {
     }
     
     // Limit markets for "All Markets" category (but allow more when searching or for other categories)
+    // Increased limit to get more variety of YES/NO outcomes
     const limitedMarkets = (category === 'All Markets' && !isSearching) 
-      ? markets.slice(0, 500) 
+      ? markets.slice(0, 2000) // Increased from 500 to 2000 for better variety
       : markets;
     
     // Transform markets to predictions (server-side filtering and transformation)

@@ -55,7 +55,7 @@ const Index = () => {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>("");
   const [predictions, setPredictions] = useState<PredictionNodeData[]>([]);
   const [loadingMarkets, setLoadingMarkets] = useState(false);
-  const [bubbleLimit, setBubbleLimit] = useState<number>(100);
+  const [bubbleLimit, setBubbleLimit] = useState<number>(150);
   
   // Debounce search query to prevent glitching during typing
   useEffect(() => {

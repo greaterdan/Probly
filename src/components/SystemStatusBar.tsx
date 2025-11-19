@@ -300,19 +300,21 @@ export const SystemStatusBar = ({
         >
           <Newspaper className="w-3.5 h-3.5" />
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onToggleWaitlist}
-          className={`h-7 w-7 p-0 border-border rounded-full transition-colors ${
-            showWaitlist && isSummaryOpen && !showNewsFeed
-              ? 'border-terminal-accent bg-terminal-accent/20 text-terminal-accent hover:bg-terminal-accent/30'
-              : 'bg-background hover:bg-bg-elevated text-foreground hover:text-foreground'
-          }`}
-          title="Join Waitlist"
-        >
-          <Bot className="w-3.5 h-3.5" />
-        </Button>
+        {isLoggedIn && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onToggleWaitlist}
+            className={`h-7 w-7 p-0 border-border rounded-full transition-colors ${
+              showWaitlist && isSummaryOpen && !showNewsFeed
+                ? 'border-terminal-accent bg-terminal-accent/20 text-terminal-accent hover:bg-terminal-accent/30'
+                : 'bg-background hover:bg-bg-elevated text-foreground hover:text-foreground'
+            }`}
+            title="Join Waitlist"
+          >
+            <Bot className="w-3.5 h-3.5" />
+          </Button>
+        )}
         {custodialWallet && (
           <CustodialWallet
             walletAddress={custodialWallet.publicKey}

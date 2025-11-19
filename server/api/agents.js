@@ -91,8 +91,10 @@ try {
  * Fetch trades for a specific agent
  */
 export async function getAgentTrades(req, res) {
+  const requestStart = Date.now();
   try {
     const { agentId } = req.params;
+    console.log(`[API:${req.id}] 📥 GET /api/agents/${agentId}/trades`);
     
     // Map frontend agent IDs to backend agent IDs
     const agentIdMap = {
@@ -116,7 +118,10 @@ export async function getAgentTrades(req, res) {
     }
     
     // Generate trades (uses cache internally)
+    console.log(`[API:${req.id}] 🤖 Generating trades for agent ${backendAgentId}...`);
     const trades = await generateAgentTrades(backendAgentId);
+    console.log(`[API:${req.id}] ✅ Generated ${trades.length} trades for ${backendAgentId}`);
+    
     const agent = getAgentProfile(backendAgentId);
     
     // Map trades to frontend format
@@ -132,6 +137,9 @@ export async function getAgentTrades(req, res) {
       predictionId: trade.marketId, // Use marketId as predictionId
     }));
     
+    const duration = Date.now() - requestStart;
+    console.log(`[API:${req.id}] ✅ Returning ${mappedTrades.length} trades (${duration}ms)`);
+    
     res.json({
       agent: {
         id: agentId, // Return frontend ID
@@ -141,7 +149,8 @@ export async function getAgentTrades(req, res) {
       trades: mappedTrades,
     });
   } catch (error) {
-    console.error(`[API] Error fetching trades for ${req.params.agentId}:`, error.message);
+    console.error(`[API:${req.id}] ❌ Error fetching trades for ${req.params.agentId}:`, error.message);
+    console.error(`[API:${req.id}] Stack:`, error.stack);
     res.status(500).json({
       error: 'Failed to fetch agent trades',
       message: error.message,
@@ -155,8 +164,12 @@ export async function getAgentTrades(req, res) {
  * Fetch summary for all agents
  */
 export async function getAgentsSummary(req, res) {
+  const requestStart = Date.now();
   try {
+    console.log(`[API:${req.id}] 📥 GET /api/agents/summary`);
+    
     const agentIds = ALL_AGENT_IDS || Object.keys(agentIdMap || {});
+    console.log(`[API:${req.id}] 🤖 Generating trades for ${agentIds.length} agents: ${agentIds.join(', ')}`);
     
     // Fetch trades for all agents in parallel
     const results = await Promise.allSettled(
@@ -169,8 +182,18 @@ export async function getAgentsSummary(req, res) {
     const allTrades = results.map(r => r.status === 'fulfilled' ? r.value : []);
     const tradesByAgent = agentIds.reduce((acc, agentId, index) => {
       acc[agentId] = allTrades[index];
+      const result = results[index];
+      const tradeCount = allTrades[index]?.length || 0;
+      if (result.status === 'fulfilled') {
+        console.log(`[API:${req.id}] ✅ Agent ${agentId}: ${tradeCount} trades`);
+      } else {
+        console.log(`[API:${req.id}] ❌ Agent ${agentId}: Failed - ${result.reason?.message || 'Unknown error'}`);
+      }
       return acc;
     }, {});
+    
+    const totalTrades = Object.values(tradesByAgent).reduce((sum, trades) => sum + (trades?.length || 0), 0);
+    console.log(`[API:${req.id}] 📊 Total trades across all agents: ${totalTrades}`);
     
     const summaryStats = computeSummaryStats(tradesByAgent);
     const agentSummaries = agentIds.map(agentId => {
@@ -211,6 +234,9 @@ export async function getAgentsSummary(req, res) {
       };
     });
     
+    const duration = Date.now() - requestStart;
+    console.log(`[API:${req.id}] ✅ Summary complete: ${agents.length} agents, ${totalTrades} total trades (${duration}ms)`);
+    
     res.json({
       agents,
       tradesByAgent,
@@ -220,7 +246,8 @@ export async function getAgentsSummary(req, res) {
       },
     });
   } catch (error) {
-    console.error('[API] Error fetching agents summary:', error.message);
+    console.error(`[API:${req.id}] ❌ Error fetching agents summary:`, error.message);
+    console.error(`[API:${req.id}] Stack:`, error.stack);
     res.status(500).json({
       error: 'Failed to fetch agents summary',
       message: error.message,

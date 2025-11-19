@@ -1812,9 +1812,11 @@ app.get('/api/news', async (req, res) => {
 // Agent trading endpoints
 // GET /api/agents/:agentId/trades - Get trades for a specific agent
 app.get('/api/agents/:agentId/trades', apiLimiter, getAgentTrades);
+console.log('✅ Registered: GET /api/agents/:agentId/trades');
 
 // GET /api/agents/summary - Get summary for all agents
 app.get('/api/agents/summary', apiLimiter, getAgentsSummary);
+console.log('✅ Registered: GET /api/agents/summary');
 
 // Waitlist endpoint - sends email notification
 // SECURITY: Apply rate limiting, CSRF protection, and input sanitization
@@ -2059,6 +2061,11 @@ if (process.env.VERCEL !== '1' && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
       console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`✅ Railway PORT: ${process.env.PORT || 'not set (using fallback)'}`);
       console.log(`✅ Server started successfully - ready for healthchecks`);
+      console.log(`🤖 AI Agent Trading System: Ready`);
+      console.log(`   - GET /api/agents/summary - Get all agents summary`);
+      console.log(`   - GET /api/agents/:agentId/trades - Get agent trades`);
+      console.log(`   - All agents start with $3,000 USD`);
+      console.log(`   - Trades generated on-demand when API is called`);
     });
 
     server.on('error', (err) => {

@@ -96,8 +96,12 @@ export async function fetchAllMarkets(): Promise<Market[]> {
   if (marketCache) {
     const age = Date.now() - marketCache.cachedAt;
     if (age < MARKET_CACHE_TTL) {
+      console.log(`[Polymarket] 💾 Cache hit: ${marketCache.markets.length} markets (age: ${Math.round(age / 1000)}s)`);
       return marketCache.markets;
     }
+    console.log(`[Polymarket] ⏰ Cache expired (age: ${Math.round(age / 1000)}s), fetching new markets...`);
+  } else {
+    console.log(`[Polymarket] 📊 No cache - fetching markets...`);
   }
   
   try {
@@ -121,6 +125,8 @@ export async function fetchAllMarkets(): Promise<Market[]> {
         maxPages: 5, // Get enough markets for trading (5 pages = ~5000 markets)
         limitPerPage: 1000,
       });
+      
+      console.log(`[Polymarket] ✅ Fetched ${rawMarkets.length} raw markets from API`);
       
       // Map Polymarket response to trading engine Market format
       const markets = rawMarkets.map((rawMarket: any) => {
@@ -155,6 +161,8 @@ export async function fetchAllMarkets(): Promise<Market[]> {
       }).filter((m: Market) => {
         return m.id && m.question && !isNaN(m.volumeUsd) && !isNaN(m.currentProbability);
       });
+      
+      console.log(`[Polymarket] ✅ Mapped to ${markets.length} valid markets`);
       
       // Update cache (separate cache from bubble maps to avoid conflicts)
       marketCache = {

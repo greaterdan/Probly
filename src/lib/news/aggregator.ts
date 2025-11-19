@@ -218,18 +218,24 @@ export async function fetchLatestNews(): Promise<NewsArticle[]> {
   if (newsCache) {
     const age = Date.now() - newsCache.cachedAt;
     if (age < NEWS_REFRESH_MS) {
+      console.log(`[News] 💾 Cache hit: ${newsCache.articles.length} articles (age: ${Math.round(age / 1000)}s)`);
       return newsCache.articles;
     }
+    console.log(`[News] ⏰ Cache expired (age: ${Math.round(age / 1000)}s), fetching new news...`);
+  } else {
+    console.log(`[News] 📰 No cache - fetching news...`);
   }
   
   const providers = getNewsProviders();
+  console.log(`[News] 📡 Found ${providers.length} news providers: ${providers.map(p => p.name).join(', ')}`);
   
   if (providers.length === 0) {
-    console.warn('[News] No news providers configured');
+    console.warn('[News] ⚠️ No news providers configured');
     return newsCache?.articles || [];
   }
   
   // Fetch from all providers in parallel
+  console.log(`[News] 🔄 Fetching from ${providers.length} providers in parallel...`);
   const results = await Promise.allSettled(
     providers.map(provider => fetchFromProvider(provider))
   );
@@ -248,6 +254,7 @@ export async function fetchLatestNews(): Promise<NewsArticle[]> {
   
   // Deduplicate and update cache
   const uniqueArticles = deduplicateArticles(allArticles);
+  console.log(`[News] ✅ Fetched ${allArticles.length} articles, ${uniqueArticles.length} unique after deduplication`);
   
   newsCache = {
     articles: uniqueArticles,

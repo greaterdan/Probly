@@ -315,12 +315,23 @@ export const PerformanceChart = ({ predictions = [], selectedMarketId = null, se
   }, [selectedAgentId]);
   const [viewMode, setViewMode] = useState<"chart" | "technical">("chart");
   const [zoomLevel, setZoomLevel] = useState(1); // 1 = normal, >1 = zoomed in, <1 = zoomed out
-  const [chartData, setChartData] = useState<ChartDataPoint[]>(getInitialChartData());
+  
+  // PERSISTENT chart data - use ref to maintain across unmounts, state for rendering
+  const chartDataRef = useRef<ChartDataPoint[]>(getInitialChartData());
+  const [chartData, setChartData] = useState<ChartDataPoint[]>(chartDataRef.current);
   const [isLoading, setIsLoading] = useState(true);
   const lastAgentPnlRef = useRef<Map<string, number>>(new Map());
   const animationDisabled = true;
   
+  // Restore chart data from ref on mount (if component was unmounted)
+  useEffect(() => {
+    if (chartDataRef.current.length > 0) {
+      setChartData([...chartDataRef.current]);
+    }
+  }, []);
+  
   // Fetch real agent portfolio data and update chart
+  // CRITICAL: This effect should run regardless of component visibility
   useEffect(() => {
     let isMounted = true;
     const loadChartData = async () => {
@@ -328,23 +339,27 @@ export const PerformanceChart = ({ predictions = [], selectedMarketId = null, se
         const { API_BASE_URL } = await import('@/lib/apiConfig');
         const response = await fetch(`${API_BASE_URL}/api/agents/summary`);
         
-        if (response.ok) {
-          const data = await response.json();
-          
-          // Build chart data from agent portfolios
-          const now = new Date();
-          const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-          
-          const newDataPoint: ChartDataPoint = {
-            time: timeStr,
-            timestamp: now.getTime(), // Store full timestamp for sorting
-            DEEPSEEK: STARTING_CAPITAL, // Default to starting capital
-            CLAUDE: STARTING_CAPITAL,
-            QWEN: STARTING_CAPITAL,
-            GEMINI: STARTING_CAPITAL,
-            GROK: STARTING_CAPITAL,
-            GPT5: STARTING_CAPITAL,
-          };
+        if (!response.ok) {
+          console.error('Failed to fetch agent summary:', response.status, response.statusText);
+          return;
+        }
+        
+        const data = await response.json();
+        
+        // Build chart data from agent portfolios - ONLY based on actual profit/loss
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        
+        const newDataPoint: ChartDataPoint = {
+          time: timeStr,
+          timestamp: now.getTime(), // Store full timestamp for sorting
+          DEEPSEEK: STARTING_CAPITAL, // Default to starting capital
+          CLAUDE: STARTING_CAPITAL,
+          QWEN: STARTING_CAPITAL,
+          GEMINI: STARTING_CAPITAL,
+          GROK: STARTING_CAPITAL,
+          GPT5: STARTING_CAPITAL,
+        };
 
           const tradesByAgent: Record<string, any[]> = data.tradesByAgent || {};
           const agentsByFrontendId = new Map<string, any>();
@@ -426,22 +441,61 @@ export const PerformanceChart = ({ predictions = [], selectedMarketId = null, se
           if (!isMounted) {
             return;
           }
-          // Replace chart data with real data (don't append to mock data)
+          
+          // Update chart data - ONLY if PnL actually changed (prevent unnecessary updates)
           setChartData(prev => {
             if (!isMounted) {
               return prev;
             }
+            
+            // Check if any agent's PnL actually changed
+            let hasChanges = false;
+            Object.entries(BACKEND_TO_CHART_ID).forEach(([backendId, chartKey]) => {
+              const capital = computeAgentCapital(backendId);
+              if (typeof capital === 'number') {
+                const prevPnl = lastAgentPnlRef.current.get(chartKey);
+                const currentPnl = capital - STARTING_CAPITAL;
+                const changed = prevPnl === undefined || Math.abs(prevPnl - currentPnl) > 0.01; // Only update if change > 1 cent
+                if (changed) {
+                  hasChanges = true;
+                }
+              }
+            });
+            
+            // If no changes, return previous data (don't add duplicate point)
+            if (!hasChanges && prev.length > 0) {
+              return prev;
+            }
+            
             // If this is the first load, replace initial data
             if (isLoading) {
               setIsLoading(false);
-              return [newDataPoint];
+              const firstData = [newDataPoint];
+              chartDataRef.current = firstData; // Persist to ref
+              return firstData;
             }
-            // Always append latest point for historical view
-            let updated: ChartDataPoint[] = [...prev, newDataPoint];
+            
+            // Only append if there are actual changes
+            // Check if last point is too recent (within 5 seconds) - prevent duplicate points
+            const lastPoint = prev[prev.length - 1];
+            const timeSinceLastPoint = newDataPoint.timestamp && lastPoint?.timestamp 
+              ? newDataPoint.timestamp - lastPoint.timestamp 
+              : Infinity;
+            
+            let updated: ChartDataPoint[];
+            if (timeSinceLastPoint < 5000 && prev.length > 0) {
+              // Update last point instead of adding new one (if within 5 seconds)
+              updated = [...prev.slice(0, -1), newDataPoint];
+            } else {
+              // Add new point
+              updated = [...prev, newDataPoint];
+            }
 
             // Sort by timestamp and keep last 20 points for clean chart view
             updated.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-            return updated.slice(-20);
+            const finalData = updated.slice(-20);
+            chartDataRef.current = finalData; // Persist to ref for next mount
+            return finalData;
           });
         } else {
           console.error('Failed to fetch agent summary:', response.status, response.statusText);

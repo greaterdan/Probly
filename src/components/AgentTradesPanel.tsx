@@ -132,13 +132,13 @@ export const AgentTradesPanel = ({ agentId, agentName, agentEmoji, trades, onClo
           <div className="px-2 py-0.5 rounded-full text-[10px] font-mono border border-border bg-muted/40">
             {trade.confidence}% CONF
           </div>
-          {section === "CLOSED" && trade.pnl !== undefined && (
+          {section === "CLOSED" && typeof trade.pnl === 'number' && (
             <div className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
               trade.pnl >= 0
                 ? "bg-trade-yes/15 text-trade-yes border border-trade-yes/30"
                 : "bg-trade-no/15 text-trade-no border border-trade-no/30"
             }`}>
-              {trade.pnl >= 0 ? '+' : ''}{trade.pnl.toFixed(4)} SOL
+              {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
             </div>
           )}
           {trade.investmentUsd !== undefined && trade.investmentUsd > 0 && (
@@ -146,9 +146,9 @@ export const AgentTradesPanel = ({ agentId, agentName, agentEmoji, trades, onClo
               ${trade.investmentUsd.toFixed(0)}
             </div>
           )}
-          {trade.entryProbability !== undefined && section === "OPEN" && (
+          {typeof trade.entryProbability === 'number' && section === "OPEN" && (
             <div className="px-2 py-0.5 rounded-full text-[10px] font-mono border border-border text-muted-foreground">
-              Entry {Math.round((trade.entryProbability || 0) * 100)}%
+              Entry ${trade.entryProbability.toFixed(2)}
             </div>
           )}
         </div>
@@ -258,7 +258,7 @@ export const AgentTradesPanel = ({ agentId, agentName, agentEmoji, trades, onClo
           <div className="flex flex-col">
             <span className="text-[10px] text-muted-foreground font-mono uppercase">Total PnL</span>
             <span className={`text-[14px] font-mono ${totalPnl >= 0 ? 'text-trade-yes' : 'text-trade-no'}`} style={{ fontWeight: 600 }}>
-              {totalPnl >= 0 ? '+' : ''}{totalPnl.toFixed(2)} SOL
+              {totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(2)}
             </span>
           </div>
           <div className="w-px h-6 bg-border" />

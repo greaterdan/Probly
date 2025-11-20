@@ -13,6 +13,7 @@ import { fetchLatestNews } from '../news/aggregator.js';
 import { filterCandidateMarkets, scoreMarketForAgent, computeNewsRelevance } from './scoring.js';
 import { generateTradeForMarket } from './engine.js';
 import { getCachedAgentTrades, setCachedAgentTrades } from './cache.js';
+import { generateResearchForMarket } from './research.js';
 /**
  * Research decisions cache (separate from trades)
  */
@@ -179,7 +180,6 @@ export async function generateAgentTrades(agentId) {
                     // If no trade generated, create research decision instead
                     // This shows agents are analyzing markets even when not trading
                     if (researchDecisions.length < maxResearchDecisions) {
-                        const { generateResearchForMarket } = await import('./research');
                         const researchDecision = await generateResearchForMarket(agent, scored, newsRelevance, newsArticles, i, nowMs);
                         if (researchDecision) {
                             // Store research decision
@@ -201,7 +201,6 @@ export async function generateAgentTrades(agentId) {
         else if (researchDecisions.length < maxResearchDecisions && !researchedMarketIds.has(scored.id)) {
             // Trade quota reached - continue generating research so summary stays fresh
             try {
-                const { generateResearchForMarket } = await import('./research');
                 const researchDecision = await generateResearchForMarket(agent, scored, newsRelevance, newsArticles, i, nowMs);
                 if (researchDecision) {
                     researchDecisions.push(researchDecision);
@@ -229,7 +228,6 @@ export async function generateAgentTrades(agentId) {
             }
             const newsRelevance = computeNewsRelevance(scored, newsArticles);
             try {
-                const { generateResearchForMarket } = await import('./research');
                 const researchDecision = await generateResearchForMarket(agent, scored, newsRelevance, newsArticles, i, nowMs);
                 if (researchDecision) {
                     researchDecisions.push(researchDecision);

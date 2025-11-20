@@ -312,13 +312,6 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
   const newDecisionOrderRef = useRef<Map<string, number>>(new Map());
   const hasLoadedRef = useRef(false);
 
-  useEffect(() => {
-    if (selectedAgentId) {
-      setSelectedAgentFilter(selectedAgentId.toLowerCase());
-    } else {
-      setSelectedAgentFilter(null);
-    }
-  }, [selectedAgentId]);
 
   // Fetch agent summary from API
   useEffect(() => {

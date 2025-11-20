@@ -107,11 +107,16 @@ export const AgentTradesPanel = ({ agentId, agentName, agentEmoji, trades, onClo
       <div
         key={trade.id}
         onClick={() => setExpandedTradeId(prev => prev === trade.id ? null : trade.id)}
-        className={`border rounded-2xl px-3 py-2.5 transition-all cursor-pointer ${
+        className={`border rounded-2xl px-3 py-2.5 transition-colors duration-150 cursor-pointer ${
           isExpanded
             ? "border-terminal-accent/40 bg-bg-elevated shadow-glow"
             : "border-border bg-bg-card/80 hover:border-terminal-accent/40"
         }`}
+        style={{ 
+          // Disable any transform/scale animations that could cause bounce
+          transform: 'none',
+          willChange: 'auto'
+        }}
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -160,7 +165,11 @@ export const AgentTradesPanel = ({ agentId, agentName, agentEmoji, trades, onClo
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
+              transition={{ 
+                duration: 0.2, 
+                ease: [0.4, 0, 0.2, 1], // Custom cubic bezier - no bounce
+                type: "tween" // Disable spring physics completely
+              }}
               className="overflow-hidden"
             >
               <div className="mt-3 space-y-2">

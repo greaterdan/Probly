@@ -1356,17 +1356,9 @@ const Index = () => {
               }}
             >
               <div className="flex flex-col h-full">
-                <div className={`transition-all duration-300 ${selectedPrediction ? 'h-1/2' : 'h-full'}`}>
-                  <div className="h-full">
-                    <PerformanceChart
-                      predictions={predictions}
-                      selectedMarketId={selectedNode}
-                      selectedAgentId={selectedAgent} // Pass selected agent to update chart
-                    />
-                  </div>
-                </div>
-                {selectedPrediction && (
-                  <div className="flex-1 min-h-[250px] overflow-hidden border-t border-border bg-background/80 backdrop-blur-sm">
+                {/* When market is selected, hide chart and show full market details */}
+                {selectedPrediction ? (
+                  <div className="h-full overflow-hidden bg-background">
                     <MarketDetailsPanel
                       market={selectedPrediction}
                       onClose={handleCloseMarketDetails}
@@ -1375,6 +1367,14 @@ const Index = () => {
                       }}
                       watchlist={watchlist}
                       userEmail={userEmail}
+                    />
+                  </div>
+                ) : (
+                  <div className="h-full">
+                    <PerformanceChart
+                      predictions={predictions}
+                      selectedMarketId={selectedNode}
+                      selectedAgentId={selectedAgent} // Pass selected agent to update chart
                     />
                   </div>
                 )}

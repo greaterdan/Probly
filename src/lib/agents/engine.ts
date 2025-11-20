@@ -247,6 +247,7 @@ export async function generateTradeForMarket(
   
   // Determine trade status - close some trades to show history
   // Close trades deterministically based on market ID hash (so same market = same status)
+  const marketHash = scored.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const shouldClose = (marketHash % 3) === 0; // Close ~33% of trades
   const status: 'OPEN' | 'CLOSED' = shouldClose ? 'CLOSED' : 'OPEN';
   

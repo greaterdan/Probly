@@ -51,7 +51,7 @@ export async function generateAgentTrades(agentId) {
     if (currentMarketIds.length > 0) {
         console.log(`[Agent:${agentId}] 📋 Sample market IDs (first 5):`, currentMarketIds.slice(0, 5));
     }
-    const cached = getCachedAgentTrades(agentId, currentMarketIds);
+    const cached = await getCachedAgentTrades(agentId, currentMarketIds);
     if (cached !== null) {
         console.log(`[Agent:${agentId}] 💾 Cache hit - returning ${cached.length} cached trades`);
         // Log sample trade market IDs

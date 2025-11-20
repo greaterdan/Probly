@@ -78,8 +78,8 @@ export function calculateAgentMetrics(agentId, portfolio, trades, window = 'all-
         bestCategory,
         worstCategory,
         categoryPnL,
-        openPositions: portfolio.openPositionsCount,
-        maxDrawdownPct: portfolio.maxDrawdownPct,
+        openPositions: Object.keys(portfolio.portfolio.openPositions || {}).length,
+        maxDrawdownPct: portfolio.portfolio.maxDrawdownPct,
     };
 }
 /**

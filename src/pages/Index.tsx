@@ -162,6 +162,19 @@ const getAgentTrades = async (agentId: string): Promise<Trade[]> => {
 // Mock predictions removed - all data comes from server
 
 const Index = () => {
+  // Check if coming from landing page to trigger animations
+  const [isAnimatingIn, setIsAnimatingIn] = useState(false);
+  
+  useEffect(() => {
+    const fromLanding = sessionStorage.getItem('fromLanding');
+    if (fromLanding === 'true') {
+      setIsAnimatingIn(true);
+      sessionStorage.removeItem('fromLanding');
+      // Reset animation state after animation completes
+      setTimeout(() => setIsAnimatingIn(false), 1500);
+    }
+  }, []);
+
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [agents, setAgents] = useState(initialAgents);
   const [agentTrades, setAgentTrades] = useState<Record<string, Trade[]>>({});
@@ -1005,27 +1018,33 @@ const Index = () => {
           transition: ${isTransitioning ? 'none' : 'none'} !important;
         }
       `}</style>
-      {/* Top Status Bar */}
-      <SystemStatusBar 
-        onToggleWaitlist={handleToggleWaitlist}
-        onTogglePerformance={handleTogglePerformance}
-        onToggleSummary={handleToggleSummary}
-        onToggleNewsFeed={handleToggleNewsFeed}
-        onToggleWatchlist={handleToggleWatchlist}
-        onLogout={() => {
-          // Close waitlist panel when user logs out
-          if (showWaitlist) {
-            setShowWaitlist(false);
-            setIsSummaryOpen(false);
-            setRightPanelSize(0);
-          }
-        }}
-        isPerformanceOpen={isPerformanceOpen}
-        isSummaryOpen={isSummaryOpen}
-        showNewsFeed={showNewsFeed}
-        showWaitlist={showWaitlist}
-        showWatchlist={showWatchlist}
-      />
+      {/* Top Status Bar - Animate in from top */}
+      <motion.div
+        initial={isAnimatingIn ? { y: -100, opacity: 0 } : { y: 0, opacity: 1 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, delay: isAnimatingIn ? 0.3 : 0 }}
+      >
+        <SystemStatusBar 
+          onToggleWaitlist={handleToggleWaitlist}
+          onTogglePerformance={handleTogglePerformance}
+          onToggleSummary={handleToggleSummary}
+          onToggleNewsFeed={handleToggleNewsFeed}
+          onToggleWatchlist={handleToggleWatchlist}
+          onLogout={() => {
+            // Close waitlist panel when user logs out
+            if (showWaitlist) {
+              setShowWaitlist(false);
+              setIsSummaryOpen(false);
+              setRightPanelSize(0);
+            }
+          }}
+          isPerformanceOpen={isPerformanceOpen}
+          isSummaryOpen={isSummaryOpen}
+          showNewsFeed={showNewsFeed}
+          showWaitlist={showWaitlist}
+          showWatchlist={showWatchlist}
+        />
+      </motion.div>
 
       {/* Main Content Area - Dashboard is always 100% width/height */}
       <div className="flex-1 flex overflow-hidden w-full relative" style={{ margin: 0, padding: 0 }}>
@@ -1040,8 +1059,13 @@ const Index = () => {
             padding: 0,
             }}
           >
-          {/* Market Category Dropdown - EDGE TO EDGE - NO MARGINS OR PADDING ON CONTAINER */}
-          <div className="border-b border-border flex flex-col bg-bg-elevated" style={{ width: '100%', margin: 0, padding: 0, marginLeft: 0, marginRight: 0 }}>
+          {/* Market Category Dropdown - EDGE TO EDGE - NO MARGINS OR PADDING ON CONTAINER - Animate in from top */}
+          <motion.div
+            initial={isAnimatingIn ? { y: -50, opacity: 0 } : { y: 0, opacity: 1 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.6, delay: isAnimatingIn ? 0.4 : 0 }}
+            className="border-b border-border flex flex-col bg-bg-elevated" style={{ width: '100%', margin: 0, padding: 0, marginLeft: 0, marginRight: 0 }}
+          >
             <div className="h-10 flex items-center justify-center px-4">
               <div className="flex items-center gap-3">
               <span className="text-xs text-terminal-accent font-mono leading-none flex items-center">
@@ -1313,16 +1337,24 @@ const Index = () => {
                 willChange: 'auto',
               }}
             >
-              <PredictionBubbleField
-                markets={limitedPredictions}
-                onBubbleClick={(market) => handleBubbleClick(market)}
-                selectedNodeId={selectedNode}
-                selectedAgent={selectedAgent}
-                agents={agents}
-                agentTradeMarkets={selectedAgent && agentTrades[selectedAgent] ? agentTrades[selectedAgent].map(t => t.market || t.predictionId) : []}
-                isTransitioning={isTransitioning}
-                isResizing={false}
-              />
+              <motion.div
+                initial={isAnimatingIn ? { opacity: 0 } : { opacity: 1 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.8, delay: isAnimatingIn ? 0.5 : 0 }}
+                className="w-full h-full"
+              >
+                <PredictionBubbleField
+                  markets={limitedPredictions}
+                  onBubbleClick={(market) => handleBubbleClick(market)}
+                  selectedNodeId={selectedNode}
+                  selectedAgent={selectedAgent}
+                  agents={agents}
+                  agentTradeMarkets={selectedAgent && agentTrades[selectedAgent] ? agentTrades[selectedAgent].map(t => t.market || t.predictionId) : []}
+                  isTransitioning={isTransitioning}
+                  isResizing={false}
+                  frosted={false}
+                />
+              </motion.div>
             </div>
           </div>
         </div>
@@ -1492,12 +1524,18 @@ const Index = () => {
         )}
       </div>
 
-      {/* Bottom Active Positions */}
-      <ActivePositions 
-        agents={agents}
-        selectedAgent={selectedAgent}
-        onAgentClick={handleAgentClick}
-      />
+      {/* Bottom Active Positions - Animate in from bottom */}
+      <motion.div
+        initial={isAnimatingIn ? { y: 100, opacity: 0 } : { y: 0, opacity: 1 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, delay: isAnimatingIn ? 0.4 : 0 }}
+      >
+        <ActivePositions 
+          agents={agents}
+          selectedAgent={selectedAgent}
+          onAgentClick={handleAgentClick}
+        />
+      </motion.div>
 
       {/* Market Details Modal - Replaced by side panel */}
       {/* Modal removed - details now show in left side panel */}

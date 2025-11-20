@@ -493,7 +493,8 @@ function parseAIResponse(content: string): AITradeDecision {
 export async function getAITradeDecision(
   agentId: AgentId,
   market: Market,
-  newsArticles: NewsArticle[]
+  newsArticles: NewsArticle[],
+  webSearchResults?: any[]
 ): Promise<AITradeDecision> {
   const cached = getCachedAIDecision(agentId, market.id);
   if (cached) {

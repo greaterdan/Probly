@@ -43,6 +43,7 @@ interface PredictionNodeProps {
   onDrag?: (id: string, e: React.MouseEvent) => void;
   onDragEnd?: (id: string) => void;
   isDragging?: boolean;
+  frosted?: boolean; // If true, show subtle/frosted version without text/images
 }
 
 // Custom comparison function for memo to prevent unnecessary re-renders
@@ -60,7 +61,7 @@ const areEqual = (prevProps: PredictionNodeProps, nextProps: PredictionNodeProps
   );
 };
 
-export const PredictionNode = memo(({ data, position, size, animationIndex = 0, isHighlighted, onClick, onShowTrades, onDragStart, onDrag, onDragEnd, isDragging: externalIsDragging }: PredictionNodeProps) => {
+export const PredictionNode = memo(({ data, position, size, animationIndex = 0, isHighlighted, onClick, onShowTrades, onDragStart, onDrag, onDragEnd, isDragging: externalIsDragging, frosted = false }: PredictionNodeProps) => {
   const [isPressed, setIsPressed] = useState(false);
   
   // Use provided size, or fallback to fixed size (prevents glitch on refresh)
@@ -243,7 +244,8 @@ export const PredictionNode = memo(({ data, position, size, animationIndex = 0, 
             }}
           />
           
-          {/* Content - YES/NO, percentage, volume, and question preview */}
+          {/* Content - YES/NO, percentage, volume, and question preview - Hidden if frosted */}
+          {!frosted && (
           <div className="relative z-10 flex flex-col items-center justify-center gap-0.5 text-center px-1.5" style={{ width: '90%', height: '90%', zIndex: 2 }}>
             {/* Position (YES/NO) - Larger */}
             <div 
@@ -312,6 +314,7 @@ export const PredictionNode = memo(({ data, position, size, animationIndex = 0, 
               </div>
             )}
           </div>
+          )}
         </div>
 
         {/* Enhanced glow/pulse effect when clicked or highlighted - MAXIMUM INTENSITY */}

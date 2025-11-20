@@ -14,6 +14,7 @@ type Props = {
   agentTradeMarkets?: string[]; // Market names/IDs that the selected agent has traded
   isTransitioning?: boolean; // CRITICAL: Prevent recalculations during panel transitions
   isResizing?: boolean; // CRITICAL: Prevent recalculations during panel resize
+  frosted?: boolean; // If true, show subtle/frosted version without text/images
 };
 
 const PredictionBubbleFieldComponent: React.FC<Props> = ({
@@ -25,6 +26,7 @@ const PredictionBubbleFieldComponent: React.FC<Props> = ({
   agentTradeMarkets = [],
   isTransitioning = false,
   isResizing = false,
+  frosted = false,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -1120,6 +1122,7 @@ const PredictionBubbleFieldComponent: React.FC<Props> = ({
               animationIndex={bubble.index}
               isHighlighted={isHighlighted}
               isDragging={isDragging}
+              frosted={frosted}
               onClick={() => {
                 // CRITICAL: Also check drag flags in PredictionNode onClick
                 if (hasDraggedRef.current || isDraggingRef.current || isDragging || draggedBubbleId) {

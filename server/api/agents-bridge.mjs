@@ -54,35 +54,34 @@ try {
   console.log('[API] Attempting to load TypeScript modules...');
   console.log('[API] tsx registered:', tsxRegistered);
   
-  // CRITICAL: Try compiled JS FIRST (production on Railway)
-  // Only fallback to TS if JS doesn't exist (local development)
+  // CRITICAL: In production, ONLY load compiled JS - NEVER TypeScript
+  // Railway must have compiled JS files from build:server
   let agentsModule;
-  let loadedFrom = 'unknown';
   
-  try {
-    // Try compiled JS first (production)
-    agentsModule = await import('../../dist-server/lib/agents/generator.js');
-    loadedFrom = 'compiled JS';
-    console.log('[API] ✅ Loaded generator from compiled JS');
-  } catch (jsError) {
-    // If compiled JS doesn't exist, we're in development - use tsx
-    // But ONLY if tsx is available (check via --import tsx flag)
-    console.warn('[API] ⚠️ Compiled JS not found, trying TypeScript (development mode)');
-    console.warn('[API] ⚠️ JS error:', jsError.message);
-    
-    // In production, we should NEVER reach here - compiled JS must exist
-    // If we do, it means build:server didn't run
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('CRITICAL: Compiled JS not found in production. Ensure "npm run build:server" ran during build.');
-    }
-    
-    // Development fallback: try TypeScript
+  if (process.env.NODE_ENV === 'production') {
+    // PRODUCTION: Only try compiled JS, fail fast if not found
     try {
-      agentsModule = await import('../../src/lib/agents/generator.ts');
-      loadedFrom = 'TypeScript';
-      console.log('[API] ✅ Loaded generator from TypeScript (development)');
-    } catch (tsError) {
-      throw new Error(`Failed to load generator: JS error: ${jsError.message}, TS error: ${tsError.message}`);
+      agentsModule = await import('../../dist-server/lib/agents/generator.js');
+      console.log('[API] ✅ Loaded generator from compiled JS (production)');
+    } catch (jsError) {
+      console.error('[API] ❌ CRITICAL: Compiled JS not found in production!');
+      console.error('[API] ❌ Error:', jsError.message);
+      console.error('[API] ❌ This means "npm run build:server" did not run during Railway build');
+      throw new Error('CRITICAL: Compiled JS not found. Railway build must include "npm run build:server"');
+    }
+  } else {
+    // DEVELOPMENT: Try compiled JS first, fallback to TS with tsx
+    try {
+      agentsModule = await import('../../dist-server/lib/agents/generator.js');
+      console.log('[API] ✅ Loaded generator from compiled JS (development)');
+    } catch (jsError) {
+      console.warn('[API] ⚠️ Compiled JS not found, trying TypeScript (development mode)');
+      try {
+        agentsModule = await import('../../src/lib/agents/generator.ts');
+        console.log('[API] ✅ Loaded generator from TypeScript (development)');
+      } catch (tsError) {
+        throw new Error(`Failed to load generator: JS error: ${jsError.message}, TS error: ${tsError.message}`);
+      }
     }
   }
   
@@ -92,23 +91,33 @@ try {
   let domainModule, summaryModule, statsModule, cacheModule;
   
   const loadModule = async (modulePath, moduleName) => {
-    try {
+    if (process.env.NODE_ENV === 'production') {
+      // PRODUCTION: Only compiled JS
       const jsPath = `../../dist-server/lib/agents/${modulePath}.js`;
-      const module = await import(jsPath);
-      console.log(`[API] ✅ Loaded ${moduleName} from compiled JS`);
-      return module;
-    } catch (jsError) {
-      if (process.env.NODE_ENV === 'production') {
-        throw new Error(`CRITICAL: Compiled ${moduleName} not found in production. Build failed?`);
-      }
-      // Development fallback
       try {
-        const tsPath = `../../src/lib/agents/${modulePath}.ts`;
-        const module = await import(tsPath);
-        console.log(`[API] ✅ Loaded ${moduleName} from TypeScript (development)`);
+        const module = await import(jsPath);
+        console.log(`[API] ✅ Loaded ${moduleName} from compiled JS (production)`);
         return module;
-      } catch (tsError) {
-        throw new Error(`Failed to load ${moduleName}: ${jsError.message}`);
+      } catch (jsError) {
+        console.error(`[API] ❌ CRITICAL: Compiled ${moduleName} not found in production!`);
+        throw new Error(`CRITICAL: Compiled ${moduleName} not found. Railway build must include "npm run build:server"`);
+      }
+    } else {
+      // DEVELOPMENT: Try JS first, fallback to TS
+      try {
+        const jsPath = `../../dist-server/lib/agents/${modulePath}.js`;
+        const module = await import(jsPath);
+        console.log(`[API] ✅ Loaded ${moduleName} from compiled JS (development)`);
+        return module;
+      } catch (jsError) {
+        try {
+          const tsPath = `../../src/lib/agents/${modulePath}.ts`;
+          const module = await import(tsPath);
+          console.log(`[API] ✅ Loaded ${moduleName} from TypeScript (development)`);
+          return module;
+        } catch (tsError) {
+          throw new Error(`Failed to load ${moduleName}: ${jsError.message}`);
+        }
       }
     }
   };

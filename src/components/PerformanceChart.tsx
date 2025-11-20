@@ -468,12 +468,18 @@ export const PerformanceChart = ({ predictions = [], selectedMarketId = null, se
               return prev;
             }
             
-            // If this is the first load, replace initial data
+            // If this is the first load, replace initial data ONLY if we don't have existing data
             if (isLoading) {
               setIsLoading(false);
-              const firstData = [newDataPoint];
-              chartDataRef.current = firstData; // Persist to ref
-              return firstData;
+              // Only use new data if we don't have existing data in ref
+              if (chartDataRef.current.length === 0 || chartDataRef.current[0].DEEPSEEK === STARTING_CAPITAL) {
+                const firstData = [newDataPoint];
+                chartDataRef.current = firstData; // Persist to ref
+                return firstData;
+              } else {
+                // We have existing data, keep it and just update
+                return prev;
+              }
             }
             
             // Only append if there are actual changes

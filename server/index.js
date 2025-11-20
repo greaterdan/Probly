@@ -2066,11 +2066,17 @@ if (fs.existsSync(distPath)) {
     
     // CRITICAL: Skip static assets (JS, CSS, images, etc.) - express.static should have handled these
     // If a static asset request reaches here, it means the file doesn't exist
-    // Don't serve index.html for static assets - return 404 instead
+    // Don't serve index.html for static assets - return 404 with proper MIME type instead
     const staticExtensions = ['.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.map'];
     const isStaticAsset = staticExtensions.some(ext => req.path.toLowerCase().endsWith(ext));
     if (isStaticAsset) {
-      return res.status(404).json({ error: 'Static asset not found', path: req.path });
+      // Return 404 with proper MIME type for CSS/JS to prevent browser errors
+      if (req.path.endsWith('.css')) {
+        res.type('text/css');
+      } else if (req.path.endsWith('.js')) {
+        res.type('application/javascript');
+      }
+      return res.status(404).send('/* File not found */');
     }
     
     // For all other routes, serve index.html for SPA routing

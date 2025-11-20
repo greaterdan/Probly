@@ -121,8 +121,8 @@ export function calculateAgentMetrics(
     bestCategory,
     worstCategory,
     categoryPnL,
-    openPositions: portfolio.openPositionsCount,
-    maxDrawdownPct: portfolio.maxDrawdownPct,
+    openPositions: Object.keys(portfolio.portfolio.openPositions || {}).length,
+    maxDrawdownPct: portfolio.portfolio.maxDrawdownPct,
   };
 }
 

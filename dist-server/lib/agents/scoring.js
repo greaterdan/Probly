@@ -247,7 +247,7 @@ export function computeWeightedTotalScore(scored, agent, adaptiveConfig) {
     // Apply adaptive category bias if available
     if (adaptiveConfig) {
         const category = scored.category;
-        if (category !== 'Other') {
+        if (category && category !== 'Other') {
             const categoryMultiplier = adaptiveConfig.categoryBias[category] ?? 1.0;
             finalScore = finalScore * categoryMultiplier;
         }

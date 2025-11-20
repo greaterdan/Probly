@@ -66,16 +66,39 @@ try {
   
   console.log('[API] generator.ts loaded, exports:', Object.keys(agentsModule));
   
-  const domainModule = await import('../../src/lib/agents/domain.ts');
+  // Import other modules with error handling
+  let domainModule, summaryModule, statsModule, cacheModule;
+  
+  try {
+    domainModule = await import('../../src/lib/agents/domain.ts');
+  } catch (e) {
+    console.warn('[API] ⚠️ domain.ts import failed, trying without extension:', e.message);
+    domainModule = await import('../../src/lib/agents/domain');
+  }
   console.log('[API] domain.ts loaded, exports:', Object.keys(domainModule));
   
-  const summaryModule = await import('../../src/lib/agents/summary.ts');
+  try {
+    summaryModule = await import('../../src/lib/agents/summary.ts');
+  } catch (e) {
+    console.warn('[API] ⚠️ summary.ts import failed, trying without extension:', e.message);
+    summaryModule = await import('../../src/lib/agents/summary');
+  }
   console.log('[API] summary.ts loaded, exports:', Object.keys(summaryModule));
   
-  const statsModule = await import('../../src/lib/agents/stats.ts');
+  try {
+    statsModule = await import('../../src/lib/agents/stats.ts');
+  } catch (e) {
+    console.warn('[API] ⚠️ stats.ts import failed, trying without extension:', e.message);
+    statsModule = await import('../../src/lib/agents/stats');
+  }
   console.log('[API] stats.ts loaded, exports:', Object.keys(statsModule));
   
-  const cacheModule = await import('../../src/lib/agents/cache.ts');
+  try {
+    cacheModule = await import('../../src/lib/agents/cache.ts');
+  } catch (e) {
+    console.warn('[API] ⚠️ cache.ts import failed, trying without extension:', e.message);
+    cacheModule = await import('../../src/lib/agents/cache');
+  }
   console.log('[API] cache.ts loaded, exports:', Object.keys(cacheModule));
   
   // Verify exports exist

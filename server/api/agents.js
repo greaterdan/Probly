@@ -453,3 +453,100 @@ export async function getAgentsSummary(req, res) {
     });
   }
 }
+
+/**
+ * GET /api/agents/stats
+ * 
+ * Fetch statistics for all agents (for TechnicalView)
+ */
+export async function getAgentsStats(req, res) {
+  const requestStart = Date.now();
+  try {
+    console.log(`[API:${req.id}] 📥 GET /api/agents/stats`);
+    
+    // Check if modules are loaded
+    if (!agentsModuleLoaded) {
+      console.warn(`[API:${req.id}] ⚠️ Agents module not yet loaded, waiting...`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!agentsModuleLoaded) {
+        return res.status(503).json({ 
+          error: 'Agents module still loading', 
+          message: 'Please wait a moment and try again'
+        });
+      }
+    }
+    
+    if (!calculateAllAgentStats) {
+      return res.status(503).json({ 
+        error: 'Stats calculation not available', 
+        message: 'Agent stats module not loaded'
+      });
+    }
+    
+    const agentIds = ALL_AGENT_IDS || [];
+    if (!agentIds || agentIds.length === 0) {
+      return res.status(503).json({ 
+        error: 'No agents available', 
+        message: 'Agent profiles not loaded'
+      });
+    }
+    
+    console.log(`[API:${req.id}] 📊 Calculating stats for ${agentIds.length} agents`);
+    
+    // Get trades for all agents (use cached if available)
+    let bridge;
+    try {
+      bridge = await import('./agents-bridge.mjs');
+    } catch (bridgeError) {
+      console.error(`[API:${req.id}] ❌ Failed to import bridge:`, bridgeError.message);
+      throw new Error(`Bridge import failed: ${bridgeError.message}`);
+    }
+    const getCachedTradesQuick = bridge.getCachedTradesQuick;
+    
+    const tradesByAgent = {};
+    
+    // Fetch trades for all agents (prefer cached)
+    const results = await Promise.allSettled(
+      agentIds.map(async (agentId) => {
+        try {
+          // Try cached trades first (fast path)
+          if (getCachedTradesQuick) {
+            const cached = await getCachedTradesQuick(agentId);
+            if (cached && cached.length > 0) {
+              return cached;
+            }
+          }
+          
+          // Cache miss - generate new trades
+          return await generateAgentTrades(agentId);
+        } catch (err) {
+          console.warn(`[API] Failed to get trades for agent ${agentId} for stats: ${err.message}`);
+          return [];
+        }
+      })
+    );
+    
+    // Build tradesByAgent object
+    agentIds.forEach((agentId, index) => {
+      const result = results[index];
+      tradesByAgent[agentId] = result.status === 'fulfilled' ? result.value : [];
+    });
+    
+    // Calculate stats using the stats module
+    const agentStats = calculateAllAgentStats(tradesByAgent);
+    
+    const duration = Date.now() - requestStart;
+    console.log(`[API:${req.id}] ✅ Stats calculated: ${agentStats.length} agents (${duration}ms)`);
+    
+    res.json({
+      agents: agentStats,
+    });
+  } catch (error) {
+    console.error(`[API:${req.id}] ❌ Error fetching agents stats:`, error.message);
+    console.error(`[API:${req.id}] Stack:`, error.stack);
+    res.status(500).json({
+      error: 'Failed to fetch agents stats',
+      message: error.message,
+    });
+  }
+}

@@ -5,10 +5,39 @@
  * These show up in the summary as "RESEARCH" actions (not "TRADE").
  */
 
-import type { AgentProfile, ScoredMarket, NewsArticle, NewsRelevance } from './domain.js';
+import type { AgentProfile, ScoredMarket, NewsArticle, NewsRelevance, WebResearchSnippet } from './domain.js';
 import { deterministicSeed, getDeterministicSide, getDeterministicConfidence, getDeterministicReasoning } from './engine.js';
 import { getAITradeDecision, isAIConfigured } from './ai-clients.js';
 import { searchWebForMarket, buildMarketSearchQuery, type WebSearchResult } from './web-search.js';
+
+function resolveSourceName(source?: string, url?: string): string {
+  if (source && source.trim().length > 0) {
+    return source;
+  }
+  if (url) {
+    try {
+      const hostname = new URL(url).hostname.replace(/^www\./, '');
+      const parts = hostname.split('.');
+      if (parts.length >= 2) {
+        const base = parts[parts.length - 2];
+        return base.charAt(0).toUpperCase() + base.slice(1);
+      }
+      return hostname;
+    } catch {
+      return 'Web';
+    }
+  }
+  return 'Web';
+}
+
+function buildWebResearchSummary(results: WebSearchResult[]): WebResearchSnippet[] {
+  return (results || []).slice(0, 3).map((result, idx) => ({
+    title: result?.title || `Source ${idx + 1}`,
+    snippet: result?.snippet || '',
+    url: result?.url || '',
+    source: resolveSourceName(result?.source, result?.url),
+  }));
+}
 
 /**
  * Research decision (similar to trade but without investment/status)
@@ -24,6 +53,8 @@ export interface ResearchDecision {
   reasoning: string[];
   timestamp: string; // ISO timestamp
   summaryDecision: string;
+  webResearchSummary?: WebResearchSnippet[];
+  webResearchCount?: number;
 }
 
 /**
@@ -64,6 +95,9 @@ export async function generateResearchForMarket(
     console.warn(`[Research:${agent.id}] ⚠️ Web search failed (using news/articles only):`, error);
     // Continue without web search - use news/articles instead
   }
+  
+  const webResearchSummary = buildWebResearchSummary(webSearchResults);
+  const webResearchCount = webSearchResults.length;
   
   let side: 'YES' | 'NO' | 'NEUTRAL';
   let confidence: number;
@@ -145,7 +179,15 @@ export async function generateResearchForMarket(
   
   // Generate summary decision
   const sideText = side === 'NEUTRAL' ? 'analyzed' : `leaning ${side}`;
-  const summaryDecision = `${agent.displayName} ${sideText} on "${scored.question}" with ${Math.round(confidence * 100)}% confidence. Research indicates ${reasoning.length} key factors to consider.`;
+  const probPercent = Math.round(scored.currentProbability * 100);
+  const trimmedQuestion = scored.question.length > 110 ? `${scored.question.substring(0, 107)}...` : scored.question;
+  const leadReason = reasoning[0] || 'the qualitative signals met expectations';
+  const formattedLeadReason = leadReason.charAt(0).toLowerCase() + leadReason.slice(1);
+  const webNote = webSearchResults.length > 0
+    ? `Incorporated ${webSearchResults.length} targeted web sources plus ${newsRelevance.count} news hits.`
+    : `${newsRelevance.count} directly-related news item${newsRelevance.count === 1 ? '' : 's'} reviewed.`;
+  const summaryDecision =
+    `${agent.displayName} ${sideText} on "${trimmedQuestion}" at ${probPercent}% reading because ${formattedLeadReason}. ${webNote}`;
   
   // Create research decision
   const research: ResearchDecision = {
@@ -159,10 +201,11 @@ export async function generateResearchForMarket(
     reasoning,
     timestamp,
     summaryDecision,
+    webResearchSummary,
+    webResearchCount,
   };
   
   console.log(`[Research:${agent.id}] 🔍 Analyzed market "${scored.question.substring(0, 50)}..." (score: ${scored.score.toFixed(1)}, side: ${side})`);
   
   return research;
 }
-

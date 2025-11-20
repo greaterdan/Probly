@@ -11,6 +11,9 @@
 let generateAgentTrades, getAgentProfile, isValidAgentId, ALL_AGENT_IDS, buildAgentSummary, computeSummaryStats, calculateAllAgentStats;
 let agentsModuleLoading = false;
 let agentsModuleLoaded = false;
+const isProductionEnv = process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT === 'production';
+let agentWarmupScheduled = false;
+let agentWarmupCompleted = false;
 
 // Load agents module asynchronously (non-blocking)
 (async () => {
@@ -51,6 +54,7 @@ let agentsModuleLoaded = false;
     
     agentsModuleLoaded = true;
     console.log('[API] ✅ TypeScript modules loaded successfully');
+    scheduleAgentCacheWarmup();
   } catch (error) {
     console.warn('[API] ⚠️ TypeScript modules not available. Using fallback.');
     console.warn('[API] Error:', error.message);
@@ -103,6 +107,41 @@ let agentsModuleLoaded = false;
   }
 })();
 
+function scheduleAgentCacheWarmup() {
+  if (agentWarmupScheduled || agentWarmupCompleted) {
+    return;
+  }
+  if (process.env.SKIP_AGENT_WARMUP === '1') {
+    console.log('[API] ⏭️ Agent cache warmup skipped via SKIP_AGENT_WARMUP=1');
+    agentWarmupCompleted = true;
+    return;
+  }
+  if (!agentsModuleLoaded || !generateAgentTrades || !ALL_AGENT_IDS || ALL_AGENT_IDS.length === 0) {
+    return;
+  }
+  const parsedDelay = Number(process.env.AGENT_WARMUP_DELAY_MS);
+  const warmupDelay = Number.isFinite(parsedDelay)
+    ? Math.max(0, parsedDelay)
+    : (isProductionEnv ? 2000 : 1000);
+  agentWarmupScheduled = true;
+  console.log(`[API] 🔁 Scheduling agent cache warmup in ${warmupDelay}ms (${ALL_AGENT_IDS.length} agents)`);
+  
+  setTimeout(async () => {
+    console.log('[API] 🔥 Starting agent cache warmup...');
+    for (const agentId of ALL_AGENT_IDS) {
+      try {
+        console.log(`[API] 🔧 Warming cache for ${agentId}`);
+        await generateAgentTrades(agentId);
+      } catch (error) {
+        console.warn(`[API] ⚠️ Warmup failed for ${agentId}: ${error.message}`);
+      }
+    }
+    console.log('[API] ✅ Agent cache warmup complete');
+    agentWarmupCompleted = true;
+    agentWarmupScheduled = false;
+  }, warmupDelay);
+}
+
 /**
  * GET /api/agents/:agentId/trades
  * 
@@ -144,13 +183,19 @@ export async function getAgentTrades(req, res) {
     
     // Map trades to frontend format
     const mappedTrades = trades.map(trade => {
+      const reasoningBullets = Array.isArray(trade.reasoning) ? trade.reasoning : [];
       const mapped = {
         id: trade.id,
         timestamp: new Date(trade.openedAt),
         market: trade.marketQuestion || trade.marketId, // Use marketQuestion if available, fallback to marketId
         decision: trade.side,
         confidence: Math.round(trade.confidence * 100),
-        reasoning: trade.reasoning.join(' '),
+        reasoning: reasoningBullets.join(' '),
+        reasoningBullets,
+        summaryDecision: trade.summaryDecision || reasoningBullets[0] || '',
+        entryProbability: trade.entryProbability,
+        currentProbability: trade.currentProbability,
+        webResearchSummary: Array.isArray(trade.webResearchSummary) ? trade.webResearchSummary : [],
         pnl: trade.pnl,
         status: trade.status,
         investmentUsd: trade.investmentUsd || 0, // Amount invested in this trade
@@ -260,22 +305,35 @@ export async function getAgentsSummary(req, res) {
     const tradesByAgent = agentIds.reduce((acc, agentId, index) => {
       const rawTrades = allTrades[index] || [];
       // Map to frontend format (same as getAgentTrades)
-      const mappedTrades = rawTrades.map(trade => ({
-        id: trade.id,
-        timestamp: new Date(trade.openedAt),
-        market: trade.marketQuestion || trade.marketId,
-        decision: trade.side,
-        confidence: Math.round(trade.confidence * 100),
-        reasoning: typeof trade.reasoning === 'string' ? trade.reasoning : (Array.isArray(trade.reasoning) ? trade.reasoning.join(' ') : ''),
-        pnl: trade.pnl,
-        status: trade.status,
-        investmentUsd: trade.investmentUsd || 0,
-        predictionId: trade.marketId,
-        marketQuestion: trade.marketQuestion,
-        marketId: trade.marketId,
-        openedAt: trade.openedAt,
-        action: 'TRADE', // Explicitly mark as trade
-      }));
+      const mappedTrades = rawTrades.map(trade => {
+        const reasoningBullets = Array.isArray(trade.reasoning)
+          ? trade.reasoning
+          : typeof trade.reasoning === 'string'
+            ? [trade.reasoning]
+            : [];
+        const reasoningText = reasoningBullets.join(' ');
+        return {
+          id: trade.id,
+          timestamp: new Date(trade.openedAt),
+          market: trade.marketQuestion || trade.marketId,
+          decision: trade.side,
+          confidence: Math.round(trade.confidence * 100),
+          reasoning: reasoningText,
+          reasoningBullets,
+          summaryDecision: trade.summaryDecision || trade.summary || reasoningBullets[0] || '',
+          entryProbability: trade.entryProbability,
+          currentProbability: trade.currentProbability,
+          webResearchSummary: Array.isArray(trade.webResearchSummary) ? trade.webResearchSummary : [],
+          pnl: trade.pnl,
+          status: trade.status,
+          investmentUsd: trade.investmentUsd || 0,
+          predictionId: trade.marketId,
+          marketQuestion: trade.marketQuestion,
+          marketId: trade.marketId,
+          openedAt: trade.openedAt,
+          action: 'TRADE', // Explicitly mark as trade
+        };
+      });
       acc[agentId] = mappedTrades;
       const result = results[index];
       const tradeCount = mappedTrades.length;
@@ -291,19 +349,29 @@ export async function getAgentsSummary(req, res) {
     const researchByAgent = agentIds.reduce((acc, agentId) => {
       try {
         const research = getAgentResearch(agentId);
-        const mappedResearch = research.map(r => ({
-          id: r.id,
-          timestamp: new Date(r.timestamp),
-          market: r.marketQuestion || r.marketId,
-          decision: r.side === 'NEUTRAL' ? 'YES' : r.side, // Convert NEUTRAL to YES for display
-          confidence: Math.round(r.confidence * 100),
-          reasoning: Array.isArray(r.reasoning) ? r.reasoning.join(' ') : (r.reasoning || ''),
-          predictionId: r.marketId,
-          marketQuestion: r.marketQuestion,
-          marketId: r.marketId,
-          openedAt: r.timestamp,
-          action: 'RESEARCH', // Mark as research
-        }));
+        const mappedResearch = research.map(r => {
+          const reasoningBullets = Array.isArray(r.reasoning)
+            ? r.reasoning
+            : r.reasoning
+              ? [r.reasoning]
+              : [];
+          return {
+            id: r.id,
+            timestamp: new Date(r.timestamp),
+            market: r.marketQuestion || r.marketId,
+            decision: r.side === 'NEUTRAL' ? 'YES' : r.side, // Convert NEUTRAL to YES for display
+            confidence: Math.round(r.confidence * 100),
+            reasoning: reasoningBullets.join(' '),
+            reasoningBullets,
+            summaryDecision: r.summaryDecision || reasoningBullets[0] || '',
+            webResearchSummary: Array.isArray(r.webResearchSummary) ? r.webResearchSummary : [],
+            predictionId: r.marketId,
+            marketQuestion: r.marketQuestion,
+            marketId: r.marketId,
+            openedAt: r.timestamp,
+            action: 'RESEARCH', // Mark as research
+          };
+        });
         acc[agentId] = mappedResearch;
       } catch (error) {
         console.warn(`[API] Failed to get research for ${agentId}:`, error);
@@ -385,6 +453,3 @@ export async function getAgentsSummary(req, res) {
     });
   }
 }
-
-
-

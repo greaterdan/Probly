@@ -53,7 +53,18 @@ interface Trade {
   decision: "YES" | "NO";
   confidence: number;
   reasoning: string;
+  reasoningBullets?: string[];
+  summaryDecision?: string;
+  entryProbability?: number;
+  currentProbability?: number;
+  webResearchSummary?: Array<{
+    title: string;
+    snippet: string;
+    url: string;
+    source: string;
+  }>;
   pnl?: number;
+  investmentUsd?: number;
   status: "OPEN" | "CLOSED" | "PENDING";
   predictionId: string; // Always link to actual prediction ID
 }
@@ -88,6 +99,17 @@ const fetchAgentTrades = async (agentId: string): Promise<Trade[]> => {
       decision: trade.decision || trade.side,
       confidence: typeof trade.confidence === 'number' ? trade.confidence : parseInt(trade.confidence) || 0,
       reasoning: typeof trade.reasoning === 'string' ? trade.reasoning : (Array.isArray(trade.reasoning) ? trade.reasoning.join(' ') : ''),
+      reasoningBullets: Array.isArray(trade.reasoningBullets)
+        ? trade.reasoningBullets
+        : typeof trade.reasoning === 'string'
+          ? trade.reasoning.split(/(?<=\.)\s+/).filter(Boolean).slice(0, 4)
+          : [],
+      summaryDecision: trade.summaryDecision || trade.summary || '',
+      entryProbability: typeof trade.entryProbability === 'number' ? trade.entryProbability : undefined,
+      currentProbability: typeof trade.currentProbability === 'number' ? trade.currentProbability : undefined,
+      webResearchSummary: Array.isArray(trade.webResearchSummary)
+        ? trade.webResearchSummary
+        : [],
       pnl: trade.pnl,
       investmentUsd: trade.investmentUsd || 0, // Amount invested
       status: trade.status || 'OPEN',
@@ -1478,5 +1500,3 @@ const Index = () => {
 };
 
 export default Index;
-
-

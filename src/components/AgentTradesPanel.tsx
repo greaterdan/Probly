@@ -11,6 +11,16 @@ interface Trade {
   decision: "YES" | "NO";
   confidence: number;
   reasoning: string;
+  reasoningBullets?: string[];
+  summaryDecision?: string;
+  entryProbability?: number;
+  currentProbability?: number;
+  webResearchSummary?: Array<{
+    title: string;
+    snippet: string;
+    url: string;
+    source: string;
+  }>;
   pnl?: number;
   investmentUsd?: number; // Amount invested in this trade
   status: "OPEN" | "CLOSED" | "PENDING";
@@ -171,9 +181,32 @@ export const AgentTradesPanel = ({ agentId, agentName, agentEmoji, trades, onClo
                       {formatTimeAgo(trade.timestamp)}
                     </div>
                   </div>
-                  <div className="text-[12px] text-text-secondary leading-relaxed mb-2" style={{ fontWeight: 400, pointerEvents: 'none' }}>
-                    {trade.reasoning}
-                  </div>
+                  {trade.summaryDecision && (
+                    <div className="text-[12px] text-foreground leading-relaxed mb-2 font-mono" style={{ fontWeight: 500, pointerEvents: 'none' }}>
+                      {trade.summaryDecision}
+                    </div>
+                  )}
+                  {trade.reasoningBullets && trade.reasoningBullets.length > 0 ? (
+                    <ul className="text-[12px] text-text-secondary leading-relaxed mb-2 space-y-1 pl-4 list-disc" style={{ pointerEvents: 'none' }}>
+                      {trade.reasoningBullets.map((reason, idx) => (
+                        <li key={`${trade.id}-open-reason-${idx}`}>{reason}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="text-[12px] text-text-secondary leading-relaxed mb-2" style={{ fontWeight: 400, pointerEvents: 'none' }}>
+                      {trade.reasoning}
+                    </div>
+                  )}
+                  {trade.webResearchSummary && trade.webResearchSummary.length > 0 && (
+                    <div className="text-[11px] text-muted-foreground font-mono border border-terminal-accent/30 rounded-lg p-2 mb-2 bg-terminal-accent/5" style={{ pointerEvents: 'none' }}>
+                      <div className="uppercase tracking-[0.1em] mb-1 text-terminal-accent">Web Research</div>
+                      {trade.webResearchSummary.slice(0, 2).map((source, idx) => (
+                        <div key={`${trade.id}-web-${idx}`} className="text-[11px] text-foreground mb-1">
+                          <span className="font-semibold text-terminal-accent">{source.source}:</span> {source.snippet || source.title}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div className="flex items-center gap-2" style={{ pointerEvents: 'auto' }}>
                     {(trade.marketSlug || trade.conditionId) && (
                       <a
@@ -269,9 +302,32 @@ export const AgentTradesPanel = ({ agentId, agentName, agentEmoji, trades, onClo
                       {formatTimeAgo(trade.timestamp)}
                     </div>
                   </div>
-                  <div className="text-[12px] text-text-secondary leading-relaxed mb-2" style={{ fontWeight: 400, pointerEvents: 'none' }}>
-                    {trade.reasoning}
-                  </div>
+                  {trade.summaryDecision && (
+                    <div className="text-[12px] text-foreground leading-relaxed mb-2 font-mono" style={{ fontWeight: 500, pointerEvents: 'none' }}>
+                      {trade.summaryDecision}
+                    </div>
+                  )}
+                  {trade.reasoningBullets && trade.reasoningBullets.length > 0 ? (
+                    <ul className="text-[12px] text-text-secondary leading-relaxed mb-2 space-y-1 pl-4 list-disc" style={{ pointerEvents: 'none' }}>
+                      {trade.reasoningBullets.map((reason, idx) => (
+                        <li key={`${trade.id}-closed-reason-${idx}`}>{reason}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="text-[12px] text-text-secondary leading-relaxed mb-2" style={{ fontWeight: 400, pointerEvents: 'none' }}>
+                      {trade.reasoning}
+                    </div>
+                  )}
+                  {trade.webResearchSummary && trade.webResearchSummary.length > 0 && (
+                    <div className="text-[11px] text-muted-foreground font-mono border border-terminal-accent/30 rounded-lg p-2 mb-2 bg-terminal-accent/5" style={{ pointerEvents: 'none' }}>
+                      <div className="uppercase tracking-[0.1em] mb-1 text-terminal-accent">Web Research</div>
+                      {trade.webResearchSummary.slice(0, 2).map((source, idx) => (
+                        <div key={`${trade.id}-closed-web-${idx}`} className="text-[11px] text-foreground mb-1">
+                          <span className="font-semibold text-terminal-accent">{source.source}:</span> {source.snippet || source.title}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div className="flex items-center gap-2" style={{ pointerEvents: 'auto' }}>
                     {(trade.marketSlug || trade.conditionId) && (
                       <a
@@ -306,4 +362,3 @@ export const AgentTradesPanel = ({ agentId, agentName, agentEmoji, trades, onClo
     </div>
   );
 };
-

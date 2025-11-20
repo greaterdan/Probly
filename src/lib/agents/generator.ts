@@ -187,6 +187,9 @@ export async function generateAgentTrades(agentId: AgentId): Promise<AgentTrade[
   const trades: AgentTrade[] = [];
   const researchDecisions: ResearchDecision[] = [];
   
+  const maxResearchDecisions = Math.max(agent.maxTrades * 2, 6);
+  const researchedMarketIds = new Set<string>();
+  
   console.log(`[Agent:${agentId}] 🤖 Generating trades for ${selectedMarkets.length} markets...`);
   for (let i = 0; i < selectedMarkets.length; i++) {
     const scored = selectedMarkets[i];
@@ -195,22 +198,53 @@ export async function generateAgentTrades(agentId: AgentId): Promise<AgentTrade[
     // News relevance still computed for reasoning (legacy compatibility)
     const newsRelevance = computeNewsRelevance(scored, newsArticles);
     
-    try {
-      const trade = await generateTradeForMarket(
-        agent,
-        scored,
-        newsRelevance,
-        newsArticles,
-        i,
-        nowMs
-      );
-      
-      if (trade) {
-        trades.push(trade);
-        console.log(`[Agent:${agentId}] ✅ Generated trade ${trades.length}: ${trade.side} @ ${(trade.confidence * 100).toFixed(0)}% confidence`);
-      } else {
-        // If no trade generated, create research decision instead
-        // This shows agents are analyzing markets even when not trading
+    const shouldAttemptTrades = trades.length < agent.maxTrades;
+    
+    if (shouldAttemptTrades) {
+      try {
+        const trade = await generateTradeForMarket(
+          agent,
+          scored,
+          newsRelevance,
+          newsArticles,
+          i,
+          nowMs
+        );
+        
+        if (trade) {
+          trades.push(trade);
+          console.log(`[Agent:${agentId}] ✅ Generated trade ${trades.length}: ${trade.side} @ ${(trade.confidence * 100).toFixed(0)}% confidence`);
+        } else {
+          // If no trade generated, create research decision instead
+          // This shows agents are analyzing markets even when not trading
+          if (researchDecisions.length < maxResearchDecisions) {
+            const { generateResearchForMarket } = await import('./research');
+            const researchDecision = await generateResearchForMarket(
+              agent,
+              scored,
+              newsRelevance,
+              newsArticles,
+              i,
+              nowMs
+            );
+            
+            if (researchDecision) {
+              // Store research decision
+              researchDecisions.push(researchDecision);
+              researchedMarketIds.add(scored.id);
+              console.log(`[Agent:${agentId}] 🔍 Generated research: ${researchDecision.side} @ ${(researchDecision.confidence * 100).toFixed(0)}% confidence`);
+            } else {
+              console.log(`[Agent:${agentId}] ⏭️ Skipped market (score too low)`);
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`[Agent:${agentId}] ❌ Failed to generate trade for market ${scored.id}:`, error);
+        // Continue to next market
+      }
+    } else if (researchDecisions.length < maxResearchDecisions && !researchedMarketIds.has(scored.id)) {
+      // Trade quota reached - continue generating research so summary stays fresh
+      try {
         const { generateResearchForMarket } = await import('./research');
         const researchDecision = await generateResearchForMarket(
           agent,
@@ -222,22 +256,49 @@ export async function generateAgentTrades(agentId: AgentId): Promise<AgentTrade[
         );
         
         if (researchDecision) {
-          // Store research decision
           researchDecisions.push(researchDecision);
-          console.log(`[Agent:${agentId}] 🔍 Generated research: ${researchDecision.side} @ ${(researchDecision.confidence * 100).toFixed(0)}% confidence`);
-        } else {
-          console.log(`[Agent:${agentId}] ⏭️ Skipped market (score too low)`);
+          researchedMarketIds.add(scored.id);
+          console.log(`[Agent:${agentId}] 🔍 Additional research generated post-trade-cap: ${researchDecision.side} @ ${(researchDecision.confidence * 100).toFixed(0)}% confidence`);
         }
+      } catch (error) {
+        console.error(`[Agent:${agentId}] ❌ Failed to generate research for market ${scored.id}:`, error);
       }
-    } catch (error) {
-      console.error(`[Agent:${agentId}] ❌ Failed to generate trade for market ${scored.id}:`, error);
-      // Continue to next market
     }
     
-    // Stop once we have enough trades
-    if (trades.length >= agent.maxTrades) {
-      console.log(`[Agent:${agentId}] 🎯 Reached max trades (${agent.maxTrades}) - stopping`);
+    // Stop once we have enough total insights
+    if (trades.length >= agent.maxTrades && researchDecisions.length >= maxResearchDecisions) {
+      console.log(`[Agent:${agentId}] 🎯 Reached trade (${agent.maxTrades}) and research (${maxResearchDecisions}) targets - stopping`);
       break;
+    }
+  }
+
+  // If we still need more research insights, take another pass through unresearched markets
+  if (researchDecisions.length < maxResearchDecisions) {
+    console.log(`[Agent:${agentId}] 🔁 Research below target (${researchDecisions.length}/${maxResearchDecisions}) - running supplemental pass`);
+    for (let i = 0; i < selectedMarkets.length && researchDecisions.length < maxResearchDecisions; i++) {
+      const scored = selectedMarkets[i];
+      if (researchedMarketIds.has(scored.id)) {
+        continue;
+      }
+      const newsRelevance = computeNewsRelevance(scored, newsArticles);
+      try {
+        const { generateResearchForMarket } = await import('./research');
+        const researchDecision = await generateResearchForMarket(
+          agent,
+          scored,
+          newsRelevance,
+          newsArticles,
+          i,
+          nowMs
+        );
+        if (researchDecision) {
+          researchDecisions.push(researchDecision);
+          researchedMarketIds.add(scored.id);
+          console.log(`[Agent:${agentId}] 🔍 Supplemental research: ${researchDecision.side} on ${scored.id}`);
+        }
+      } catch (error) {
+        console.error(`[Agent:${agentId}] ❌ Supplemental research failed for ${scored.id}:`, error);
+      }
     }
   }
   
@@ -259,7 +320,6 @@ export async function generateAgentTrades(agentId: AgentId): Promise<AgentTrade[
 export function getAgentResearch(agentId: AgentId): ResearchDecision[] {
   return researchCache.get(agentId) || [];
 }
-
 
 
 

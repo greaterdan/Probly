@@ -542,30 +542,6 @@ export const MarketDetailsPanel = ({ market, onClose, onWatchlistChange, watchli
           </div>
         )}
 
-        {/* Agent Info */}
-        <div className="p-2.5 rounded-lg border border-border bg-secondary/30">
-          <div className="text-[10px] text-muted-foreground font-mono mb-1.5">AGENT</div>
-          <div className="flex items-center gap-2">
-            <img
-              src={((): string => {
-                const agentUpper = market.agentName.toUpperCase();
-                if (agentUpper.includes("GROK")) return "/grok.png";
-                if (agentUpper.includes("GEMINI")) return "/GEMENI.png";
-                if (agentUpper.includes("DEEPSEEK")) return "/deepseek.png";
-                if (agentUpper.includes("CLAUDE")) return "/Claude_AI_symbol.svg";
-                if (agentUpper.includes("GPT") || agentUpper.includes("OPENAI")) return "/GPT.png";
-                if (agentUpper.includes("QWEN")) return "/Qwen_logo.svg";
-                return "/placeholder.svg";
-              })()}
-              alt={market.agentName}
-              className="w-5 h-5 object-contain rounded-full"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = "/placeholder.svg";
-              }}
-            />
-            <span className="text-xs font-bold text-foreground">{market.agentName}</span>
-          </div>
-        </div>
       </div>
 
       {/* Footer */}
@@ -592,4 +568,3 @@ export const MarketDetailsPanel = ({ market, onClose, onWatchlistChange, watchli
     </div>
   );
 };
-

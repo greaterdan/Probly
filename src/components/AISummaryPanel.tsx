@@ -1,7 +1,25 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
-import { Brain, TrendingUp, TrendingDown, Activity, ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Brain, TrendingUp, TrendingDown, Activity, ChevronDown, ChevronUp, Globe } from "lucide-react";
 import { TypewriterText } from "./TypewriterText";
+
+const DEFAULT_AGENT_OPTIONS = [
+  { id: "grok", name: "GROK 4", emoji: "🔥" },
+  { id: "gpt5", name: "GPT-5", emoji: "✨" },
+  { id: "deepseek", name: "DEEPSEEK V3", emoji: "🔮" },
+  { id: "gemini", name: "GEMINI 2.5", emoji: "♊" },
+  { id: "claude", name: "CLAUDE 4.5", emoji: "🧠" },
+  { id: "qwen", name: "QWEN 2.5", emoji: "🤖" },
+];
+
+const BACKEND_TO_FRONTEND_AGENT_ID: Record<string, string> = {
+  "GROK_4": "grok",
+  "GPT_5": "gpt5",
+  "DEEPSEEK_V3": "deepseek",
+  "GEMINI_2_5": "gemini",
+  "CLAUDE_4_5": "claude",
+  "QWEN_2_5": "qwen",
+};
 
 const getAgentLogo = (agentName: string): string => {
   const agentUpper = agentName.toUpperCase();
@@ -16,6 +34,7 @@ const getAgentLogo = (agentName: string): string => {
 
 interface AIDecision {
   id: string;
+  agentId?: string;
   agentName: string;
   agentEmoji: string;
   timestamp: Date;
@@ -27,6 +46,12 @@ interface AIDecision {
   reasoning: string; // Truncated for display
   fullReasoning?: string[]; // Full reasoning for expansion
   investmentUsd?: number; // Investment amount
+  webResearchSummary?: Array<{
+    title: string;
+    snippet: string;
+    url: string;
+    source: string;
+  }>;
   decisionHistory?: Array<{
     id: string;
     timestamp: Date;
@@ -280,9 +305,20 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedAgent, setSelectedAgent] = useState<string | null>(null); // null = all agents
-  const [agents, setAgents] = useState<Array<{ id: string; name: string; emoji: string }>>([]);
+  const [selectedAgentFilter, setSelectedAgentFilter] = useState<string | null>(null); // null = all agents
+  const [agents, setAgents] = useState<Array<{ id: string; name: string; emoji: string }>>(DEFAULT_AGENT_OPTIONS);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const newDecisionIdsRef = useRef<Set<string>>(new Set());
+  const newDecisionOrderRef = useRef<Map<string, number>>(new Map());
+  const hasLoadedRef = useRef(false);
+
+  useEffect(() => {
+    if (selectedAgentId) {
+      setSelectedAgentFilter(selectedAgentId.toLowerCase());
+    } else {
+      setSelectedAgentFilter(null);
+    }
+  }, [selectedAgentId]);
 
   // Fetch agent summary from API
   useEffect(() => {
@@ -290,11 +326,6 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
     
     const loadSummary = async () => {
       try {
-        // ONLY set loading on very first load when there are NO decisions at all
-        if (decisions.length === 0 && loading) {
-          // Keep loading state - will be set to false after first successful load
-        }
-        
         const { API_BASE_URL } = await import('@/lib/apiConfig');
         const response = await fetch(`${API_BASE_URL}/api/agents/summary`);
         
@@ -305,6 +336,23 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
           
           // Convert API data to AIDecision format
           const newDecisions: AIDecision[] = [];
+          
+  if (Array.isArray(data.agents)) {
+    setAgents(prevAgents => {
+      const merged = new Map<string, { id: string; name: string; emoji: string }>();
+      DEFAULT_AGENT_OPTIONS.forEach(agent => merged.set(agent.id, agent));
+      data.agents.forEach((agent: any) => {
+        if (!agent?.id) return;
+        const normalizedId = String(agent.id).toLowerCase();
+        merged.set(normalizedId, {
+          id: normalizedId,
+          name: agent.name || agent.displayName || normalizedId.toUpperCase(),
+          emoji: agent.emoji || agent.avatar || merged.get(normalizedId)?.emoji || '🤖',
+        });
+      });
+      return Array.from(merged.values());
+    });
+  }
           
           if (data.summary?.agentSummaries) {
             for (const agentSummary of data.summary.agentSummaries) {
@@ -350,7 +398,10 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
               const uniqueDecisionsArray = Array.from(uniqueDecisions.values()).slice(0, 8);
               
               uniqueDecisionsArray.forEach((decision: any, index: number) => {
-                const agent = data.agents?.find((a: any) => a.id === agentId);
+                const frontendAgentId = BACKEND_TO_FRONTEND_AGENT_ID[agentId] || agentId.toLowerCase();
+                const agentMeta =
+                  data.agents?.find((a: any) => a?.id && String(a.id).toLowerCase() === frontendAgentId) ||
+                  DEFAULT_AGENT_OPTIONS.find(agent => agent.id === frontendAgentId);
                 
                 // Determine action type (TRADE or RESEARCH)
                 const action = decision.action || decision.type || 'TRADE';
@@ -378,8 +429,9 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
                 
                 newDecisions.push({
                   id: decision.id || `${agentId}-${decision.marketId}-${index}`, // Use decision.id or generate stable ID
-                  agentName: agent?.name || agent?.displayName || agentId,
-                  agentEmoji: agent?.emoji || agent?.avatar || '🤖',
+                  agentId: frontendAgentId,
+                  agentName: agentMeta?.name || agentSummary.agentName || agentId,
+                  agentEmoji: agentMeta?.emoji || '🤖',
                   timestamp: decisionTimestamp,
                   action: action, // 'TRADE' or 'RESEARCH'
                   market: decision.marketQuestion || decision.market || decision.marketId || 'Unknown Market',
@@ -389,6 +441,7 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
                   reasoning: reasoningText,
                   fullReasoning: Array.isArray(decision.reasoning) ? decision.reasoning : (decision.reasoning ? [decision.reasoning] : []), // Store full reasoning for expansion
                   investmentUsd: action === 'TRADE' ? (decision.investmentUsd || 0) : undefined, // Only trades have investment
+                  webResearchSummary: Array.isArray(decision.webResearchSummary) ? decision.webResearchSummary : [],
                   decisionHistory: [], // Don't show nested history to avoid clutter
                 });
               });
@@ -411,6 +464,8 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
             const prevMap = new Map(prev.map(d => [d.id, d]));
             const merged: AIDecision[] = [];
             const seenIds = new Set<string>();
+            const freshIds = new Set<string>();
+            const orderMap = new Map<string, number>();
             
             // Add new decisions first (most recent at top) - these will animate in
             for (const decision of newDecisions) {
@@ -418,9 +473,13 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
               if (prevDecision) {
                 // Existing decision - update it but keep it in the list
                 merged.push(decision);
+                if (decision.timestamp.getTime() !== prevDecision.timestamp.getTime()) {
+                  freshIds.add(decision.id);
+                }
               } else {
                 // Brand new decision - add at top (will animate from top)
                 merged.push(decision);
+                freshIds.add(decision.id);
               }
               seenIds.add(decision.id);
             }
@@ -434,11 +493,23 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
             merged.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
             
             // Limit to 100 items to prevent memory issues (but keep them all visible)
-            return merged.slice(0, 100);
+            const limited = merged.slice(0, 100);
+            if (freshIds.size > 0) {
+              newDecisions.forEach((decision, idx) => {
+                if (freshIds.has(decision.id)) {
+                  orderMap.set(decision.id, idx);
+                }
+              });
+            } else {
+              orderMap.clear();
+            }
+            newDecisionOrderRef.current = orderMap;
+            newDecisionIdsRef.current = freshIds;
+            return limited;
           });
           
-          // Set loading to false after first successful load
-          if (loading) {
+          if (!hasLoadedRef.current) {
+            hasLoadedRef.current = true;
             setLoading(false);
           }
         }
@@ -446,7 +517,8 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
         console.error('Failed to fetch agent summary:', error);
         // NEVER clear decisions on error - always keep existing ones visible
         // Only set loading to false if we were actually loading
-        if (loading && decisions.length === 0) {
+        if (!hasLoadedRef.current) {
+          hasLoadedRef.current = true;
           setLoading(false);
         }
       }
@@ -460,7 +532,7 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [decisions.length, loading]); // Only depend on length and loading state
+  }, []); // Run once on mount
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -469,20 +541,34 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
 
     return () => clearInterval(interval);
   }, []);
+  
+  useEffect(() => {
+    if (newDecisionIdsRef.current.size > 0 || newDecisionOrderRef.current.size > 0) {
+      const frame = requestAnimationFrame(() => {
+        newDecisionIdsRef.current = new Set();
+        newDecisionOrderRef.current = new Map();
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [decisions]);
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  // Filter decisions by selected agent
-  const filteredDecisions = selectedAgent
+  const filteredDecisions = selectedAgentFilter
     ? decisions.filter(d => {
-        // Match by agent name (case-insensitive)
-        const agentName = d.agentName.toLowerCase();
-        const selectedName = selectedAgent.toLowerCase();
-        return agentName.includes(selectedName) || selectedName.includes(agentName);
+        const selectedId = selectedAgentFilter.toLowerCase();
+        if (d.agentId) {
+          return d.agentId.toLowerCase() === selectedId;
+        }
+        const agentName = (d.agentName || '').toLowerCase();
+        return agentName.includes(selectedId);
       })
     : decisions;
+  const selectedAgentMeta = selectedAgentFilter
+    ? agents.find(agent => agent.id === selectedAgentFilter)
+    : null;
 
   return (
     <div className="h-full flex flex-col bg-background overflow-hidden">
@@ -500,12 +586,10 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
               className="flex items-center gap-1.5 px-2 py-1 rounded border border-border bg-bg-elevated hover:bg-muted/50 transition-colors text-[11px] font-mono text-foreground"
             >
               <span className="text-[11px]">
-                {selectedAgent 
-                  ? agents.find(a => a.name.toLowerCase() === selectedAgent.toLowerCase())?.emoji || '🤖'
-                  : 'ALL'}
+                {selectedAgentMeta ? selectedAgentMeta.emoji : 'ALL'}
               </span>
               <span className="text-[10px] text-muted-foreground max-w-[80px] truncate">
-                {selectedAgent || 'All Agents'}
+                {selectedAgentMeta?.name || 'All Agents'}
               </span>
               {dropdownOpen ? (
                 <ChevronUp className="w-3 h-3 text-muted-foreground" />
@@ -519,11 +603,11 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
               <div className="absolute top-full left-0 mt-1 bg-bg-elevated border border-border rounded-lg shadow-lg z-50 min-w-[140px] max-h-[300px] overflow-y-auto">
                 <button
                   onClick={() => {
-                    setSelectedAgent(null);
+                    setSelectedAgentFilter(null);
                     setDropdownOpen(false);
                   }}
                   className={`w-full px-3 py-2 text-left text-[11px] font-mono hover:bg-muted/50 transition-colors flex items-center gap-2 ${
-                    selectedAgent === null ? 'bg-terminal-accent/10 text-terminal-accent' : 'text-foreground'
+                    selectedAgentFilter === null ? 'bg-terminal-accent/10 text-terminal-accent' : 'text-foreground'
                   }`}
                 >
                   <span>ALL</span>
@@ -533,11 +617,11 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
                   <button
                     key={agent.id}
                     onClick={() => {
-                      setSelectedAgent(agent.name);
+                      setSelectedAgentFilter(agent.id);
                       setDropdownOpen(false);
                     }}
                     className={`w-full px-3 py-2 text-left text-[11px] font-mono hover:bg-muted/50 transition-colors flex items-center gap-2 ${
-                      selectedAgent === agent.name ? 'bg-terminal-accent/10 text-terminal-accent' : 'text-foreground'
+                      selectedAgentFilter === agent.id ? 'bg-terminal-accent/10 text-terminal-accent' : 'text-foreground'
                     }`}
                   >
                     <span>{agent.emoji}</span>
@@ -585,15 +669,20 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
           </div>
         ) : (
         <div className="p-3 space-y-3">
-          {/* CRITICAL: Use AnimatePresence with mode="sync" to prevent disappearing */}
-          {/* initial={false} prevents initial animations on mount */}
-          <AnimatePresence mode="sync" initial={false}>
+          {/* CRITICAL: Use AnimatePresence with popLayout so entries push the rest down smoothly */}
+          {/* initial={false} prevents the whole list from replaying entrance animations on mount */}
+          <AnimatePresence mode="popLayout" initial={false}>
             {filteredDecisions.map((decision, index) => {
             const isExpanded = expandedId === decision.id;
             const hasHistory = decision.decisionHistory && decision.decisionHistory.length > 0;
             
-            // Track if this is a truly new decision (first 5 items are considered "new" for animation)
-            const isNewDecision = index < 5;
+            // Track only decisions that truly just arrived for entrance animation
+            const isNewDecision = newDecisionIdsRef.current.has(decision.id);
+            const orderPosition = newDecisionOrderRef.current.get(decision.id) ?? 0;
+            const animationDelay = isNewDecision ? Math.min(orderPosition * 0.35, 1.4) : 0;
+            const layoutTransition = isNewDecision
+              ? { duration: 0.45, ease: [0.16, 1, 0.3, 1] }
+              : { duration: 0.25, ease: [0.16, 1, 0.3, 1] };
             
             return (
               <motion.div
@@ -601,8 +690,13 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
                 initial={isNewDecision ? { opacity: 0, y: -40, scale: 0.95 } : false} // New items animate from top
                 animate={{ opacity: 1, y: 0, scale: 1 }} // Always visible when in list
                 exit={{ opacity: 0, height: 0 }} // Only exit if actually removed (shouldn't happen)
-                transition={{ duration: 0.5, ease: "easeOut" }} // Smooth animation
-                layout // Enable layout animations for smooth repositioning
+                transition={{
+                  duration: isNewDecision ? 0.55 : 0.3,
+                  delay: animationDelay,
+                  ease: [0.16, 1, 0.3, 1],
+                }} // Smooth animation
+                layout
+                layoutTransition={layoutTransition}
                 className="bg-bg-elevated border border-border rounded-xl overflow-hidden hover:border-terminal-accent/50 transition-colors"
               >
                 {/* Clickable Header - Always expandable to show decision details */}
@@ -709,11 +803,23 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
                   {/* Reasoning (truncated) - Typewriter effect */}
                   <div className="text-[12px] text-text-secondary leading-relaxed" style={{ fontWeight: 400 }}>
                     <TypewriterText 
-                      text={decision.reasoning} 
+                      text={decision.reasoning}
                       speed={25}
                       className="inline"
                     />
                   </div>
+                  {decision.webResearchSummary && decision.webResearchSummary.length > 0 && (
+                    <div className="mt-2 p-2 bg-terminal-accent/5 border border-terminal-accent/30 rounded-lg">
+                      <div className="flex items-center gap-1 text-terminal-accent text-[10px] font-mono uppercase tracking-[0.1em] mb-1">
+                        <Globe className="w-3 h-3" />
+                        Web Signals
+                      </div>
+                      <div className="text-[11px] text-foreground leading-relaxed">
+                        <span className="font-semibold">{decision.webResearchSummary[0].source}:</span>{" "}
+                        {decision.webResearchSummary[0].snippet || decision.webResearchSummary[0].title}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Expanded Decision Details */}
@@ -764,6 +870,36 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
                             </div>
                           </div>
                         </div>
+                        
+                        {decision.webResearchSummary && decision.webResearchSummary.length > 0 && (
+                          <div>
+                            <div className="text-[11px] text-muted-foreground font-mono uppercase mb-2" style={{ fontWeight: 600 }}>
+                              Web Research Highlights
+                            </div>
+                            <div className="space-y-1.5">
+                              {decision.webResearchSummary.map((source, idx) => (
+                                <div key={`${decision.id}-expanded-web-${idx}`} className="bg-bg-elevated border border-terminal-accent/20 rounded-lg p-2">
+                                  <div className="flex items-center justify-between gap-2 text-[12px] font-semibold text-foreground">
+                                    <span>{source.source}</span>
+                                    {source.url && (
+                                      <a
+                                        href={source.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[10px] font-mono uppercase text-terminal-accent hover:underline"
+                                      >
+                                        View
+                                      </a>
+                                    )}
+                                  </div>
+                                  <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                                    {source.snippet || source.title}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         
                         {/* Investment Amount */}
                         {decision.investmentUsd !== undefined && decision.investmentUsd > 0 && (
@@ -822,5 +958,3 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
     </div>
   );
 };
-
-

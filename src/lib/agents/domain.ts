@@ -92,11 +92,20 @@ export type TradeStatus = 'OPEN' | 'CLOSED';
  * Agent trade record
  * Represents a single trade decision by an agent
  */
+export interface WebResearchSnippet {
+  title: string;
+  snippet: string;
+  url: string;
+  source: string;
+}
+
 export interface AgentTrade {
   id: string; // Deterministic: `${agentId}:${marketId}`
   agentId: AgentId;
   marketId: string;
   marketQuestion: string; // Market question/title for display
+  entryProbability: number; // Probability when trade was opened (0-1)
+  currentProbability: number; // Last known probability (0-1)
   side: TradeSide;
   confidence: number; // 0-1
   score: number; // 0-100 from scoring engine
@@ -108,6 +117,7 @@ export interface AgentTrade {
   closedAt?: string; // ISO timestamp (only for CLOSED)
   summaryDecision: string; // 1-2 sentence explanation
   seed: string; // Hash basis for determinism
+  webResearchSummary?: WebResearchSnippet[];
 }
 
 /**
@@ -278,8 +288,6 @@ export function getAgentProfile(agentId: AgentId): AgentProfile {
 export function isValidAgentId(id: string): id is AgentId {
   return id in AGENT_PROFILES;
 }
-
-
 
 
 

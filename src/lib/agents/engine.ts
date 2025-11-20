@@ -5,9 +5,10 @@
  * Handles AI API calls, deterministic fallbacks, and personality rules.
  */
 
-import type { AgentProfile, ScoredMarket, AgentTrade, TradeSide, NewsRelevance, NewsArticle, Category } from './domain.js';
+import type { AgentProfile, ScoredMarket, AgentTrade, TradeSide, NewsRelevance, NewsArticle, Category, WebResearchSnippet } from './domain.js';
 import { getAITradeDecision, isAIConfigured } from './ai-clients.js';
 import { getPersonalityRules, applyPersonalityRules } from './personality.js';
+import { searchWebForMarket, buildMarketSearchQuery } from './web-search.js';
 import { createHash } from 'crypto';
 
 /**
@@ -44,6 +45,35 @@ export function getDeterministicConfidence(scored: ScoredMarket, agent: AgentPro
   const riskMultiplier = agent.risk === 'HIGH' ? 1.1 : agent.risk === 'LOW' ? 0.9 : 1.0;
   const jitter = (deterministicNumber(seed + 'jitter') - 0.5) * 0.1; // ±5% jitter
   return Math.max(0.4, Math.min(0.95, baseConfidence * riskMultiplier + jitter));
+}
+
+function resolveSourceName(source?: string, url?: string): string {
+  if (source && source.trim().length > 0) {
+    return source;
+  }
+  if (url) {
+    try {
+      const hostname = new URL(url).hostname.replace(/^www\./, '');
+      const parts = hostname.split('.');
+      if (parts.length >= 2) {
+        const base = parts[parts.length - 2];
+        return base.charAt(0).toUpperCase() + base.slice(1);
+      }
+      return hostname;
+    } catch {
+      return 'Web';
+    }
+  }
+  return 'Web';
+}
+
+function buildWebResearchSummary(results: any[]): WebResearchSnippet[] {
+  return (results || []).slice(0, 3).map((result: any, idx: number) => ({
+    title: result?.title || `Source ${idx + 1}`,
+    snippet: result?.snippet || '',
+    url: result?.url || '',
+    source: resolveSourceName(result?.source, result?.url),
+  }));
 }
 
 /**
@@ -136,8 +166,8 @@ export async function generateTradeForMarket(
   
   // Search web for market-specific information (concise search)
   let webSearchResults: any[] = [];
+  let webResearchSummary: WebResearchSnippet[] = [];
   try {
-    const { searchWebForMarket, buildMarketSearchQuery } = await import('./web-search');
     const searchQuery = buildMarketSearchQuery(scored.question, scored.category);
     console.log(`[Engine:${agent.id}] 🔍 Searching web for: "${searchQuery}"`);
     webSearchResults = await searchWebForMarket(searchQuery);
@@ -148,6 +178,7 @@ export async function generateTradeForMarket(
     console.warn(`[Engine:${agent.id}] ⚠️ Web search failed (using news/articles only):`, error);
     // Continue without web search - use news/articles instead
   }
+  webResearchSummary = buildWebResearchSummary(webSearchResults);
   
   // Try AI API if configured - include web search results
   if (isAIConfigured(agent.id)) {
@@ -307,8 +338,17 @@ export async function generateTradeForMarket(
     pnl = Math.round(pnl * 100) / 100;
   }
   
-  // Generate summary decision
-  const summaryDecision = `${agent.displayName} decided to trade ${side} on "${scored.question}" with ${Math.round(confidence * 100)}% confidence based on ${reasoning.length} key factors.`;
+  // Generate summary decision with concrete metrics for UI display
+  const probPercent = Math.round(scored.currentProbability * 100);
+  const volumeLabel = `$${(scored.volumeUsd / 1000).toFixed(1)}k`;
+  const liquidityLabel = `$${(scored.liquidityUsd / 1000).toFixed(1)}k`;
+  const trimmedQuestion = scored.question.length > 110 ? `${scored.question.substring(0, 107)}...` : scored.question;
+  const actionVerb = side === 'YES' ? 'backing' : 'fading';
+  const leadReason = reasoning[0] || 'this setup meets every trading filter';
+  const formattedLeadReason = leadReason.charAt(0).toLowerCase() + leadReason.slice(1);
+  const summaryDecision =
+    `${agent.displayName} is ${actionVerb} "${trimmedQuestion}" at ${probPercent}% with ${Math.round(confidence * 100)}% confidence because ${formattedLeadReason}. ` +
+    `Score ${Math.round(scored.score)} with ${volumeLabel} volume and ${liquidityLabel} liquidity.`;
   
   // Create trade
   const trade: AgentTrade = {
@@ -316,6 +356,8 @@ export async function generateTradeForMarket(
     agentId: agent.id,
     marketId: scored.id, // This MUST match prediction IDs
     marketQuestion: scored.question, // Include market question for display
+    entryProbability: scored.currentProbability,
+    currentProbability: scored.currentProbability,
     side,
     confidence,
     score: scored.score,
@@ -327,6 +369,7 @@ export async function generateTradeForMarket(
     closedAt, // Only for closed trades
     summaryDecision,
     seed,
+    webResearchSummary,
   };
   
   // Log trade creation with market ID for debugging
@@ -334,4 +377,3 @@ export async function generateTradeForMarket(
   
   return trade;
 }
-

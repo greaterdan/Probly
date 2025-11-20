@@ -56,6 +56,24 @@ const agents = [
   { id: "QWEN", name: "Qwen 2.5", shortName: "QWEN", color: "#6b9e7d", logoKey: "QWEN" },
 ];
 
+const BACKEND_TO_CHART_ID: Record<string, keyof ChartDataPoint> = {
+  'GROK_4': 'GROK',
+  'GEMINI_2_5': 'GEMINI',
+  'DEEPSEEK_V3': 'DEEPSEEK',
+  'CLAUDE_4_5': 'CLAUDE',
+  'GPT_5': 'GPT5',
+  'QWEN_2_5': 'QWEN',
+};
+
+const BACKEND_TO_FRONTEND_ID: Record<string, string> = {
+  'GROK_4': 'grok',
+  'GEMINI_2_5': 'gemini',
+  'DEEPSEEK_V3': 'deepseek',
+  'CLAUDE_4_5': 'claude',
+  'GPT_5': 'gpt5',
+  'QWEN_2_5': 'qwen',
+};
+
 // Custom Tooltip Component
 const MultiAgentTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload || !payload.length) return null;
@@ -263,6 +281,19 @@ interface PerformanceChartProps {
 
 export const PerformanceChart = ({ predictions = [], selectedMarketId = null, selectedAgentId = null }: PerformanceChartProps = {}) => {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const predictionProbabilityMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (Array.isArray(predictions)) {
+      predictions.forEach((prediction) => {
+        if (!prediction || !prediction.id) return;
+        const rawProb = typeof prediction.probability === 'number' ? prediction.probability : 0;
+        const normalized = rawProb > 1 ? rawProb / 100 : rawProb;
+        const clamped = Math.max(0, Math.min(1, normalized));
+        map.set(prediction.id, clamped);
+      });
+    }
+    return map;
+  }, [predictions]);
   
   // Update selectedAgent when selectedAgentId prop changes (from bottom navbar)
   useEffect(() => {
@@ -286,9 +317,12 @@ export const PerformanceChart = ({ predictions = [], selectedMarketId = null, se
   const [zoomLevel, setZoomLevel] = useState(1); // 1 = normal, >1 = zoomed in, <1 = zoomed out
   const [chartData, setChartData] = useState<ChartDataPoint[]>(getInitialChartData());
   const [isLoading, setIsLoading] = useState(true);
+  const lastAgentPnlRef = useRef<Map<string, number>>(new Map());
+  const animationDisabled = true;
   
   // Fetch real agent portfolio data and update chart
   useEffect(() => {
+    let isMounted = true;
     const loadChartData = async () => {
       try {
         const { API_BASE_URL } = await import('@/lib/apiConfig');
@@ -311,34 +345,97 @@ export const PerformanceChart = ({ predictions = [], selectedMarketId = null, se
             GROK: STARTING_CAPITAL,
             GPT5: STARTING_CAPITAL,
           };
-          
-          // Map agent data to chart format
-          if (data.agents && Array.isArray(data.agents)) {
-            const agentMap: Record<string, string> = {
-              'deepseek': 'DEEPSEEK',
-              'claude': 'CLAUDE',
-              'qwen': 'QWEN',
-              'gemini': 'GEMINI',
-              'grok': 'GROK',
-              'gpt5': 'GPT5',
-            };
-            
+
+          const tradesByAgent: Record<string, any[]> = data.tradesByAgent || {};
+          const agentsByFrontendId = new Map<string, any>();
+          if (Array.isArray(data.agents)) {
             data.agents.forEach((agent: any) => {
-              const chartKey = agentMap[agent.id] as keyof ChartDataPoint;
-              if (chartKey) {
-                // Calculate current capital: starting ($3,000) + PnL
-                // PnL can be positive (wins) or negative (losses)
-                // If no trades have been made, PnL is 0, so capital = $3,000
-                const pnl = agent.pnl || 0;
-                newDataPoint[chartKey] = STARTING_CAPITAL + pnl;
+              if (agent?.id) {
+                agentsByFrontendId.set(agent.id.toLowerCase(), agent);
               }
             });
           }
+
+          const getProbabilityForTrade = (trade: any): number => {
+            const fallback = typeof trade.currentProbability === 'number'
+              ? trade.currentProbability
+              : typeof trade.entryProbability === 'number'
+                ? trade.entryProbability
+                : typeof trade.confidence === 'number'
+                  ? Math.max(0, Math.min(1, trade.confidence / 100))
+                  : 0.5;
+            if (!trade) {
+              return fallback;
+            }
+            const liveProb =
+              (trade.predictionId && predictionProbabilityMap.get(trade.predictionId)) ??
+              (trade.marketId && predictionProbabilityMap.get(trade.marketId)) ??
+              fallback;
+            return liveProb;
+          };
+
+          const computeAgentCapital = (backendId: string) => {
+            const trades = tradesByAgent[backendId] || [];
+            if (!Array.isArray(trades) || trades.length === 0) {
+              const frontendId = BACKEND_TO_FRONTEND_ID[backendId] || backendId.toLowerCase();
+              const fallbackAgent = agentsByFrontendId.get(frontendId);
+              const fallbackPnl = fallbackAgent?.pnl || 0;
+              return STARTING_CAPITAL + fallbackPnl;
+            }
+            let realizedPnl = 0;
+            let unrealizedPnl = 0;
+            trades.forEach((trade: any) => {
+              const decision = trade.decision || trade.side;
+              const investment = trade.investmentUsd || 0;
+              if (trade.status === 'CLOSED') {
+                if (typeof trade.pnl === 'number') {
+                  realizedPnl += trade.pnl;
+                }
+                return;
+              }
+              if (!decision || !investment) {
+                return;
+              }
+              const entryProb = typeof trade.entryProbability === 'number'
+                ? trade.entryProbability
+                : typeof trade.confidence === 'number'
+                  ? Math.max(0, Math.min(1, trade.confidence / 100))
+                  : 0.5;
+              const currentProb = getProbabilityForTrade(trade);
+              const probDelta = decision === 'YES'
+                ? (currentProb - entryProb)
+                : (entryProb - currentProb);
+              unrealizedPnl += probDelta * investment;
+            });
+            return STARTING_CAPITAL + realizedPnl + unrealizedPnl;
+          };
           
+          const pnlDidChange = new Map<string, boolean>();
+          let anyChangeDetected = false;
+          Object.entries(BACKEND_TO_CHART_ID).forEach(([backendId, chartKey]) => {
+            const capital = computeAgentCapital(backendId);
+            if (typeof capital === 'number') {
+              newDataPoint[chartKey] = capital;
+              const prevPnl = lastAgentPnlRef.current.get(chartKey);
+              const currentPnl = capital - STARTING_CAPITAL;
+              const changed = prevPnl === undefined || Math.abs(prevPnl - currentPnl) > 0.05;
+              pnlDidChange.set(chartKey, changed);
+              if (changed) {
+                anyChangeDetected = true;
+              }
+              lastAgentPnlRef.current.set(chartKey, currentPnl);
+            }
+          });
+          
+          if (!isMounted || !anyChangeDetected) {
+            return;
+          }
           // Replace chart data with real data (don't append to mock data)
           setChartData(prev => {
+            if (!isMounted) {
+              return prev;
+            }
             // If this is the first load, replace initial data
-            // Otherwise, add new point and keep historical data (last 100 points for multi-day view)
             if (isLoading) {
               setIsLoading(false);
               return [newDataPoint];
@@ -375,8 +472,11 @@ export const PerformanceChart = ({ predictions = [], selectedMarketId = null, se
     loadChartData();
     // Update chart every 30 seconds
     const interval = setInterval(loadChartData, 30 * 1000);
-    return () => clearInterval(interval);
-  }, [isLoading]);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isLoading, predictionProbabilityMap]);
 
   // Filter agents to only show those trading the selected market
   const filteredAgents = useMemo(() => {
@@ -634,7 +734,6 @@ export const PerformanceChart = ({ predictions = [], selectedMarketId = null, se
               {agents.map((agent) => {
                 const isVisible = selectedAgent === null || selectedAgent === agent.id;
                 
-                // Only render if visible
                 if (!isVisible) return null;
                 
                 return (
@@ -644,8 +743,8 @@ export const PerformanceChart = ({ predictions = [], selectedMarketId = null, se
                     dataKey={agent.id}
                     fill={`url(#gradient-${agent.id})`}
                     stroke="none"
-                    isAnimationActive={true}
-                    animationDuration={1500}
+                    isAnimationActive={!animationDisabled}
+                    animationDuration={animationDisabled ? 0 : 1500}
                     animationEasing="ease-out"
                   />
                 );
@@ -653,25 +752,25 @@ export const PerformanceChart = ({ predictions = [], selectedMarketId = null, se
               {agents.map((agent) => {
                 const isVisible = selectedAgent === null || selectedAgent === agent.id;
                 
-                // Only render line if visible
                 if (!isVisible) return null;
                 
                 return (
                   <Line
                     key={agent.id}
-                    type="monotone"
+                    type="linear"
+                    connectNulls
                     dataKey={agent.id}
                     stroke={agent.color}
                     strokeWidth={selectedAgent === agent.id ? 2.5 : 2}
                     dot={false}
                     activeDot={{
-                      r: 6,
+                      r: 5,
                       fill: agent.color,
                       strokeWidth: 2,
                       stroke: "#050608",
                     }}
-                    isAnimationActive={true}
-                    animationDuration={1500}
+                    isAnimationActive={!animationDisabled}
+                    animationDuration={animationDisabled ? 0 : 1500}
                     animationEasing="ease-out"
                     animationBegin={0}
                   />

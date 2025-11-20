@@ -218,7 +218,6 @@ export async function generateAgentTrades(agentId: AgentId): Promise<AgentTrade[
           // If no trade generated, create research decision instead
           // This shows agents are analyzing markets even when not trading
           if (researchDecisions.length < maxResearchDecisions) {
-            const { generateResearchForMarket } = await import('./research');
             const researchDecision = await generateResearchForMarket(
               agent,
               scored,
@@ -245,7 +244,6 @@ export async function generateAgentTrades(agentId: AgentId): Promise<AgentTrade[
     } else if (researchDecisions.length < maxResearchDecisions && !researchedMarketIds.has(scored.id)) {
       // Trade quota reached - continue generating research so summary stays fresh
       try {
-        const { generateResearchForMarket } = await import('./research');
         const researchDecision = await generateResearchForMarket(
           agent,
           scored,
@@ -282,7 +280,6 @@ export async function generateAgentTrades(agentId: AgentId): Promise<AgentTrade[
       }
       const newsRelevance = computeNewsRelevance(scored, newsArticles);
       try {
-        const { generateResearchForMarket } = await import('./research');
         const researchDecision = await generateResearchForMarket(
           agent,
           scored,
@@ -320,7 +317,6 @@ export async function generateAgentTrades(agentId: AgentId): Promise<AgentTrade[
 export function getAgentResearch(agentId: AgentId): ResearchDecision[] {
   return researchCache.get(agentId) || [];
 }
-
 
 
 

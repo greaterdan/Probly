@@ -184,7 +184,7 @@ export async function fetchAllMarkets(): Promise<Market[]> {
     const apiUrl = process.env.POLYMARKET_API_URL || 'https://gamma-api.polymarket.com/markets';
     const apiKey = process.env.POLYMARKET_API_KEY;
     
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Accept': 'application/json',
     };
     
@@ -202,7 +202,7 @@ export async function fetchAllMarkets(): Promise<Market[]> {
       throw new Error(`Polymarket API error: ${response.status} ${response.statusText}`);
     }
     
-    const data = await response.json();
+    const data = await response.json() as any;
     const rawMarkets = Array.isArray(data) ? data : (data.markets || data.results || []);
     
     const markets = rawMarkets.map(mapPolymarketMarket).filter((m: Market) => {

@@ -2045,20 +2045,27 @@ if (fs.existsSync(distPath)) {
       return res.status(404).json({ error: 'Not found' });
     }
     
-    // Skip static assets - express.static should have handled these
-    // If we reach here, it means express.static didn't find the file
-    // So serve index.html for SPA routing
+    // CRITICAL: Skip static assets (JS, CSS, images, etc.) - express.static should have handled these
+    // If a static asset request reaches here, it means the file doesn't exist
+    // Don't serve index.html for static assets - return 404 instead
+    const staticExtensions = ['.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.map'];
+    const isStaticAsset = staticExtensions.some(ext => req.path.toLowerCase().endsWith(ext));
+    if (isStaticAsset) {
+      return res.status(404).json({ error: 'Static asset not found', path: req.path });
+    }
+    
+    // For all other routes, serve index.html for SPA routing
     const indexPath = path.join(distPath, 'index.html');
-          res.sendFile(indexPath, (err) => {
-            if (err) {
-              console.error(`Error serving index.html for ${req.path}: ${err.message}`);
-              res.status(500).json({
-                error: 'Internal server error',
-                message: 'Failed to serve frontend'
-              });
-            }
-            // Don't log successful index.html serves - too frequent, causes log spam
-          });
+    res.sendFile(indexPath, (err) => {
+      if (err) {
+        console.error(`Error serving index.html for ${req.path}: ${err.message}`);
+        res.status(500).json({
+          error: 'Internal server error',
+          message: 'Failed to serve frontend'
+        });
+      }
+      // Don't log successful index.html serves - too frequent, causes log spam
+    });
   });
 } else {
   console.warn(`⚠️  Dist folder not found at ${distPath} - frontend will not be served`);

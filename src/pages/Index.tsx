@@ -597,26 +597,26 @@ const Index = () => {
       } catch (error) {
         console.warn('[Index] ⚠️  WebSocket failed, falling back to polling:', error);
         // Fallback to polling if WebSocket fails
-        const loadAgentsSummary = async () => {
-          try {
-            const { API_BASE_URL } = await import('@/lib/apiConfig');
+    const loadAgentsSummary = async () => {
+      try {
+        const { API_BASE_URL } = await import('@/lib/apiConfig');
             const response = await fetch(`${API_BASE_URL}/api/agents/summary`, {
               cache: 'no-store',
             });
-            
-            if (response.ok) {
-              const data = await response.json();
-              if (data.agents) {
-                setAgents(data.agents.map((agent: any) => ({
-                  id: agent.id,
-                  name: agent.name,
-                  emoji: agent.emoji,
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.agents) {
+            setAgents(data.agents.map((agent: any) => ({
+              id: agent.id,
+              name: agent.name,
+              emoji: agent.emoji,
                   isActive: false,
-                  pnl: agent.pnl || 0,
-                  openMarkets: agent.openMarkets || 0,
-                  lastTrade: agent.lastTrade || 'No trades',
-                })));
-              }
+              pnl: agent.pnl || 0,
+              openMarkets: agent.openMarkets || 0,
+              lastTrade: agent.lastTrade || 'No trades',
+            })));
+          }
               
               if (data.tradesByAgent) {
                 const tradesMap: Record<string, Trade[]> = {};
@@ -647,10 +647,10 @@ const Index = () => {
             }
           } catch (err) {
             console.error('[Index] Failed to fetch agents summary:', err);
-          }
-        };
-        
-        loadAgentsSummary();
+      }
+    };
+    
+    loadAgentsSummary();
         fallbackTimeout = setInterval(loadAgentsSummary, 30 * 1000);
       }
     };

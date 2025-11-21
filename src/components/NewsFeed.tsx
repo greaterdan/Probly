@@ -71,54 +71,54 @@ export const NewsFeed = () => {
 
   // Process news data (used by both WebSocket and fallback polling)
   const processNewsData = (data: NewsAPIResponse) => {
-    if (data.status === 'ok' && data.articles) {
-      // Transform articles to NewsItem format
-      const transformedArticles: NewsItem[] = data.articles
+      if (data.status === 'ok' && data.articles) {
+        // Transform articles to NewsItem format
+        const transformedArticles: NewsItem[] = data.articles
         .filter(article => article.title && article.title !== '[Removed]')
         .slice(0, 100)
-        .map((article, index) => {
-          const content = `${article.title} ${article.description || ''}`.toLowerCase();
-          let category = 'News';
-          
-          const cryptoKeywords = ['crypto', 'bitcoin', 'ethereum', 'blockchain', 'btc', 'eth', 'xrp', 'solana', 'defi', 'nft', 'altcoin', 'zcash', 'cryptocurrency'];
-          if (cryptoKeywords.some(keyword => content.includes(keyword))) {
-            category = 'Crypto';
-          } else if (content.includes('election') || content.includes('politic') || content.includes('president')) {
-            category = 'Politics';
-          } else if (content.includes('stock') || content.includes('market') || content.includes('dow') || content.includes('s&p')) {
-            category = 'Markets';
-          } else if (content.includes('economy') || content.includes('fed') || content.includes('inflation')) {
-            category = 'Economics';
-          } else if (content.includes('ai') || content.includes('technology') || content.includes('tech')) {
-            category = 'Technology';
-          } else if (content.includes('sport') || content.includes('game')) {
-            category = 'Sports';
-          } else if (content.includes('climate') || content.includes('weather')) {
-            category = 'Climate';
-          }
-          
-          return {
-            id: article.url || `news-${index}`,
-            title: article.title,
-            source: article.source?.name || 'Unknown',
+          .map((article, index) => {
+            const content = `${article.title} ${article.description || ''}`.toLowerCase();
+            let category = 'News';
+            
+            const cryptoKeywords = ['crypto', 'bitcoin', 'ethereum', 'blockchain', 'btc', 'eth', 'xrp', 'solana', 'defi', 'nft', 'altcoin', 'zcash', 'cryptocurrency'];
+            if (cryptoKeywords.some(keyword => content.includes(keyword))) {
+              category = 'Crypto';
+            } else if (content.includes('election') || content.includes('politic') || content.includes('president')) {
+              category = 'Politics';
+            } else if (content.includes('stock') || content.includes('market') || content.includes('dow') || content.includes('s&p')) {
+              category = 'Markets';
+            } else if (content.includes('economy') || content.includes('fed') || content.includes('inflation')) {
+              category = 'Economics';
+            } else if (content.includes('ai') || content.includes('technology') || content.includes('tech')) {
+              category = 'Technology';
+            } else if (content.includes('sport') || content.includes('game')) {
+              category = 'Sports';
+            } else if (content.includes('climate') || content.includes('weather')) {
+              category = 'Climate';
+            }
+            
+            return {
+              id: article.url || `news-${index}`,
+              title: article.title,
+              source: article.source?.name || 'Unknown',
             time: '',
-            category,
-            url: article.url,
-            imageUrl: article.urlToImage || undefined,
-            description: article.description || undefined,
-            publishedAt: article.publishedAt,
-          };
+              category,
+              url: article.url,
+              imageUrl: article.urlToImage || undefined,
+              description: article.description || undefined,
+              publishedAt: article.publishedAt,
+            };
+          });
+
+        transformedArticles.sort((a, b) => {
+          const timeA = new Date(a.publishedAt || 0).getTime();
+          const timeB = new Date(b.publishedAt || 0).getTime();
+          return timeB - timeA;
         });
 
-      transformedArticles.sort((a, b) => {
-        const timeA = new Date(a.publishedAt || 0).getTime();
-        const timeB = new Date(b.publishedAt || 0).getTime();
-        return timeB - timeA;
-      });
-
-      setAllNews(transformedArticles);
-      setLastUpdate(new Date());
-    }
+        setAllNews(transformedArticles);
+        setLastUpdate(new Date());
+      }
   };
 
   // Fetch news from server proxy (fallback)
@@ -177,7 +177,7 @@ export const NewsFeed = () => {
         console.warn('[NewsFeed] ⚠️  WebSocket failed, falling back to polling:', error);
         
         // Fallback to polling
-        fetchNews();
+    fetchNews();
         fallbackInterval = setInterval(fetchNews, 2.5 * 60 * 1000);
       }
     };

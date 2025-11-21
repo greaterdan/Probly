@@ -393,26 +393,26 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
   // Process summary data (used by both WebSocket and fallback polling)
   const processSummaryData = (data: any, isMounted: boolean) => {
     if (!isMounted) return;
-    
-    // Convert API data to AIDecision format
-    const newDecisions: AIDecision[] = [];
-    
-    if (Array.isArray(data.agents)) {
-      setAgents(prevAgents => {
-        const merged = new Map<string, { id: string; name: string; emoji: string }>();
-        DEFAULT_AGENT_OPTIONS.forEach(agent => merged.set(agent.id, agent));
-        data.agents.forEach((agent: any) => {
-          if (!agent?.id) return;
-          const normalizedId = String(agent.id).toLowerCase();
-          merged.set(normalizedId, {
-            id: normalizedId,
-            name: agent.name || agent.displayName || normalizedId.toUpperCase(),
-            emoji: agent.emoji || agent.avatar || merged.get(normalizedId)?.emoji || '🤖',
-          });
+          
+          // Convert API data to AIDecision format
+          const newDecisions: AIDecision[] = [];
+          
+  if (Array.isArray(data.agents)) {
+    setAgents(prevAgents => {
+      const merged = new Map<string, { id: string; name: string; emoji: string }>();
+      DEFAULT_AGENT_OPTIONS.forEach(agent => merged.set(agent.id, agent));
+      data.agents.forEach((agent: any) => {
+        if (!agent?.id) return;
+        const normalizedId = String(agent.id).toLowerCase();
+        merged.set(normalizedId, {
+          id: normalizedId,
+          name: agent.name || agent.displayName || normalizedId.toUpperCase(),
+          emoji: agent.emoji || agent.avatar || merged.get(normalizedId)?.emoji || '🤖',
         });
-        return Array.from(merged.values());
       });
-    }
+      return Array.from(merged.values());
+    });
+  }
     
     if (data.summary?.agentSummaries) {
       for (const agentSummary of data.summary.agentSummaries) {

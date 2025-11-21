@@ -310,9 +310,61 @@ const PredictionBubbleFieldComponent: React.FC<Props> = ({
     // Only use async for large counts (>100) to prevent blocking
     const shouldUseAsync = !frosted && maxVisible > 100;
     
-    // For landing page (frosted mode), calculate immediately - 50 bubbles is fast enough
+    // For landing page (frosted mode), check cache FIRST before calculating
     if (frosted && maxVisible <= 50) {
-      // Calculate synchronously for instant display
+      // CRITICAL: Check cache FIRST - this is instant and prevents recalculation when navigating back
+      try {
+        const cached = sessionStorage.getItem('landing_bubble_positions');
+        const cachedMarketIds = sessionStorage.getItem('landing_bubble_market_ids');
+        const currentMarketIds = markets.map(m => m.id ?? '').filter(Boolean).join(',');
+        
+        // Only use cache if market IDs match AND we have the same number of markets
+        if (cached && cachedMarketIds === currentMarketIds) {
+          const cachedPositions = JSON.parse(cached);
+          if (cachedPositions.length === markets.length) {
+            const cachedBubbles = markets
+              .map((m, idx) => {
+                const cached = cachedPositions.find((cp: any) => cp.id === (m.id ?? String(idx)));
+                if (cached) {
+                  return {
+                    id: cached.id,
+                    data: m,
+                    x: cached.x,
+                    y: cached.y,
+                    radius: cached.radius,
+                    index: idx,
+                  };
+                }
+                return null;
+              })
+              .filter((b): b is NonNullable<typeof b> => b !== null);
+            
+            if (cachedBubbles.length === markets.length) {
+              // Restore stable positions from cache immediately
+              const storedWidth = initialContainerSizeRef.current?.width || size.width;
+              const storedHeight = initialContainerSizeRef.current?.height || size.height;
+              cachedBubbles.forEach(bubble => {
+                stablePositionsRef.current[bubble.id] = {
+                  x: bubble.x,
+                  y: bubble.y,
+                  radius: bubble.radius,
+                  width: storedWidth,
+                  height: storedHeight,
+                };
+              });
+              
+              previousMarketIdsRef.current = new Set(markets.map(m => m.id ?? '').filter(Boolean));
+              
+              // Return cached bubbles immediately - NO CALCULATION NEEDED
+              return cachedBubbles;
+            }
+          }
+        }
+      } catch (e) {
+        // Cache check failed, continue to calculation
+      }
+      
+      // Cache miss or invalid - calculate synchronously for instant display
       try {
         const bubbles = layoutRadialBubbleCloud(
           markets.map((m, idx) => ({ id: m.id ?? String(idx), data: m })),

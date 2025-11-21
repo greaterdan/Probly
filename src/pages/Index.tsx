@@ -542,9 +542,9 @@ const Index = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch agent summary data from API - load immediately on mount
+  // Fetch agent summary data from API - load immediately on mount with retry
   useEffect(() => {
-    const loadAgentsSummary = async () => {
+    const loadAgentsSummary = async (retryCount = 0) => {
       try {
         const { API_BASE_URL } = await import('@/lib/apiConfig');
         // Use cache: 'no-store' to bypass browser cache, but server Redis cache will still work
@@ -593,16 +593,28 @@ const Index = () => {
             });
             setAgentTrades(prev => ({ ...prev, ...tradesMap }));
           }
+        } else if (response.status === 503 && retryCount < 3) {
+          // Module still loading - retry with exponential backoff
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 3000); // 1s, 2s, 3s max
+          console.log(`[Summary] Module loading, retrying in ${delay}ms (attempt ${retryCount + 1}/3)`);
+          setTimeout(() => loadAgentsSummary(retryCount + 1), delay);
         }
       } catch (error) {
-        console.error('Failed to fetch agents summary:', error);
+        if (retryCount < 3) {
+          // Network error - retry
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 3000);
+          console.log(`[Summary] Error, retrying in ${delay}ms (attempt ${retryCount + 1}/3):`, error);
+          setTimeout(() => loadAgentsSummary(retryCount + 1), delay);
+        } else {
+          console.error('Failed to fetch agents summary after retries:', error);
+        }
       }
     };
     
     // Load immediately - don't wait
     loadAgentsSummary();
     // Refresh every 30 seconds - optimized: With Redis cache (30s TTL), this ensures fresh data
-    const interval = setInterval(loadAgentsSummary, 30 * 1000);
+    const interval = setInterval(() => loadAgentsSummary(0), 30 * 1000);
     return () => clearInterval(interval);
   }, []);
 

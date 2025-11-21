@@ -241,13 +241,28 @@ export async function getAgentsSummary(req, res) {
   try {
     console.log(`[API:${req.id}] 📥 GET /api/agents/summary`);
     
-    // Check if modules are loaded - don't wait, return error immediately if not ready
+    // Check if modules are loaded - wait briefly if actively loading (max 2 seconds)
     if (!agentsModuleLoaded) {
-      console.warn(`[API:${req.id}] ⚠️ Agents module not yet loaded`);
-      return res.status(503).json({ 
-        error: 'Agents module still loading', 
-        message: 'Please wait a moment and try again'
-      });
+      if (agentsModuleLoading) {
+        // Module is actively loading - wait up to 2 seconds
+        console.log(`[API:${req.id}] ⏳ Agents module loading, waiting...`);
+        for (let i = 0; i < 20; i++) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          if (agentsModuleLoaded) {
+            console.log(`[API:${req.id}] ✅ Agents module loaded after ${(i + 1) * 100}ms`);
+            break;
+          }
+        }
+      }
+      
+      // If still not loaded after waiting, return error
+      if (!agentsModuleLoaded) {
+        console.warn(`[API:${req.id}] ⚠️ Agents module not loaded after wait`);
+        return res.status(503).json({ 
+          error: 'Agents module still loading', 
+          message: 'Please wait a moment and try again'
+        });
+      }
     }
     
     const agentIds = ALL_AGENT_IDS || Object.keys(agentIdMap || {});

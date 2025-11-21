@@ -394,12 +394,22 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
   useEffect(() => {
     let isMounted = true;
     
-    const loadSummary = async () => {
+    const loadSummary = async (retryCount = 0) => {
       try {
         const { API_BASE_URL } = await import('@/lib/apiConfig');
-        const response = await fetch(`${API_BASE_URL}/api/agents/summary`);
+        const response = await fetch(`${API_BASE_URL}/api/agents/summary`, {
+          cache: 'no-store', // Bypass browser cache, use server Redis cache
+        });
         
         if (!isMounted) return; // Component unmounted, don't update state
+        
+        if (response.status === 503 && retryCount < 3) {
+          // Module still loading - retry with exponential backoff
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 3000); // 1s, 2s, 3s max
+          console.log(`[AISummary] Module loading, retrying in ${delay}ms (attempt ${retryCount + 1}/3)`);
+          setTimeout(() => loadSummary(retryCount + 1), delay);
+          return;
+        }
         
         if (response.ok) {
           const data = await response.json();
@@ -559,12 +569,19 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
           }
         }
       } catch (error) {
-        console.error('Failed to fetch agent summary:', error);
-        // NEVER clear decisions on error - always keep existing ones visible
-        // Only set loading to false if we were actually loading
-        if (!hasLoadedRef.current) {
-          hasLoadedRef.current = true;
-          setLoading(false);
+        if (retryCount < 3) {
+          // Network error - retry with exponential backoff
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 3000); // 1s, 2s, 3s max
+          console.log(`[AISummary] Error, retrying in ${delay}ms (attempt ${retryCount + 1}/3):`, error);
+          setTimeout(() => loadSummary(retryCount + 1), delay);
+        } else {
+          console.error('Failed to fetch agent summary after retries:', error);
+          // NEVER clear decisions on error - always keep existing ones visible
+          // Only set loading to false if we were actually loading
+          if (!hasLoadedRef.current) {
+            hasLoadedRef.current = true;
+            setLoading(false);
+          }
         }
       }
     };
@@ -572,7 +589,7 @@ export const AISummaryPanel = ({ onTradeClick }: AISummaryPanelProps = {}) => {
     // Load immediately on mount - don't wait
     loadSummary();
     // Refresh every 30 seconds (optimized: with Redis cache, this is sufficient)
-    const interval = setInterval(loadSummary, 30 * 1000);
+    const interval = setInterval(() => loadSummary(0), 30 * 1000);
     
     return () => {
       isMounted = false;

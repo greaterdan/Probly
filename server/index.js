@@ -580,7 +580,11 @@ if (redisUrl) {
   }
 }
 
+// Track last pushed values to avoid pushing identical data
+const lastPushedValues = new Map();
+
 // Redis cache helper functions with detailed logging
+// EVENT-DRIVEN: Pushes WebSocket updates immediately when cache updates
 const redisCache = {
   async get(key) {
     if (!cacheClient) {
@@ -619,6 +623,45 @@ const redisCache = {
       await cacheClient.setEx(key, ttlSeconds, dataStr);
       const duration = Date.now() - startTime;
       console.log(`[CACHE] 💾 SET: ${key} (${sizeKB}KB, TTL: ${ttlSeconds}s, ${duration}ms)`);
+      
+      // EVENT-DRIVEN: Push to WebSocket immediately if data changed
+      // Only push if WebSocket is initialized and data actually changed
+      if (io && typeof io.to === 'function') {
+        const lastValue = lastPushedValues.get(key);
+        const valueStr = JSON.stringify(value);
+        const lastValueStr = lastValue ? JSON.stringify(lastValue) : null;
+        
+        // Only push if data actually changed (avoid pushing identical data)
+        if (valueStr !== lastValueStr) {
+          try {
+            if (key === 'agents:summary') {
+              const clientCount = io.sockets.adapter.rooms.get('agents:summary')?.size || 0;
+              if (clientCount > 0) {
+                io.to('agents:summary').emit('agents:summary', value);
+                console.log(`[WS] ⚡ INSTANT push: agents:summary (${clientCount} clients, ${duration}ms)`);
+              }
+            } else if (key.startsWith('predictions:')) {
+              const clientCount = io.sockets.adapter.rooms.get(key)?.size || 0;
+              if (clientCount > 0) {
+                io.to(key).emit('predictions', value);
+                console.log(`[WS] ⚡ INSTANT push: ${key} (${clientCount} clients, ${duration}ms)`);
+              }
+            } else if (key === 'news:all') {
+              const clientCount = io.sockets.adapter.rooms.get('news')?.size || 0;
+              if (clientCount > 0) {
+                io.to('news').emit('news', value);
+                console.log(`[WS] ⚡ INSTANT push: news (${clientCount} clients, ${duration}ms)`);
+              }
+            }
+            
+            // Store last pushed value
+            lastPushedValues.set(key, value);
+          } catch (wsError) {
+            console.warn(`[WS] ⚠️  Error pushing ${key} to WebSocket:`, wsError.message);
+          }
+        }
+      }
+      
       return true;
     } catch (error) {
       console.warn(`[CACHE] ⚠️  Failed to set ${key} in Redis:`, error.message);
@@ -631,6 +674,8 @@ const redisCache = {
     try {
       await cacheClient.del(key);
       console.log(`[CACHE] 🗑️  DEL: ${key}`);
+      // Clear last pushed value when cache is deleted
+      lastPushedValues.delete(key);
       return true;
     } catch (error) {
       console.warn(`[CACHE] ⚠️  Failed to delete ${key} from Redis:`, error.message);
@@ -2124,48 +2169,74 @@ io.on('connection', (socket) => {
   });
 });
 
-// Push updates when cache refreshes
-// Agent Summary - every 30 seconds (matches cache TTL)
+// Backup: Push updates on schedule (safety net in case event-driven misses)
+// Primary updates are now event-driven (pushed immediately when cache.set() is called)
+// These intervals serve as backup to ensure clients get updates even if event-driven fails
+
+// Agent Summary - every 30 seconds (backup safety net)
 setInterval(async () => {
   try {
     const cached = await redisCache.get('agents:summary');
     if (cached) {
-      io.to('agents:summary').emit('agents:summary', cached);
-      console.log(`[WS] 📤 Pushed agents:summary to ${io.sockets.adapter.rooms.get('agents:summary')?.size || 0} clients`);
+      const lastValue = lastPushedValues.get('agents:summary');
+      // Only push if data changed (avoid duplicate pushes from event-driven)
+      if (JSON.stringify(cached) !== JSON.stringify(lastValue)) {
+        const clientCount = io.sockets.adapter.rooms.get('agents:summary')?.size || 0;
+        if (clientCount > 0) {
+          io.to('agents:summary').emit('agents:summary', cached);
+          lastPushedValues.set('agents:summary', cached);
+          console.log(`[WS] 🔄 Backup push: agents:summary (${clientCount} clients)`);
+        }
+      }
     }
   } catch (error) {
-    console.error('[WS] ⚠️  Error pushing agents:summary:', error.message);
+    console.error('[WS] ⚠️  Error in backup push for agents:summary:', error.message);
   }
 }, 30000); // 30 seconds - matches cache TTL
 
-// Predictions - every 5 minutes (matches cache TTL)
+// Predictions - every 5 minutes (backup safety net)
 setInterval(async () => {
   try {
-    // Push for common categories
     const categories = ['All Markets', 'Trending', 'Breaking', 'New'];
     for (const category of categories) {
       const cacheKey = `predictions:${category}:5000`;
       const cached = await redisCache.get(cacheKey);
       if (cached) {
-        io.to(cacheKey).emit('predictions', cached);
-        console.log(`[WS] 📤 Pushed ${cacheKey} to ${io.sockets.adapter.rooms.get(cacheKey)?.size || 0} clients`);
+        const lastValue = lastPushedValues.get(cacheKey);
+        // Only push if data changed
+        if (JSON.stringify(cached) !== JSON.stringify(lastValue)) {
+          const clientCount = io.sockets.adapter.rooms.get(cacheKey)?.size || 0;
+          if (clientCount > 0) {
+            io.to(cacheKey).emit('predictions', cached);
+            lastPushedValues.set(cacheKey, cached);
+            console.log(`[WS] 🔄 Backup push: ${cacheKey} (${clientCount} clients)`);
+          }
+        }
       }
     }
   } catch (error) {
-    console.error('[WS] ⚠️  Error pushing predictions:', error.message);
+    console.error('[WS] ⚠️  Error in backup push for predictions:', error.message);
   }
 }, 5 * 60 * 1000); // 5 minutes - matches cache TTL
 
-// News - every 2 minutes (matches cache TTL)
+// News - every 2 minutes (backup safety net)
 setInterval(async () => {
   try {
     const cached = await redisCache.get('news:all');
     if (cached) {
-      io.to('news').emit('news', cached);
-      console.log(`[WS] 📤 Pushed news to ${io.sockets.adapter.rooms.get('news')?.size || 0} clients`);
+      const lastValue = lastPushedValues.get('news:all');
+      // Only push if data changed
+      if (JSON.stringify(cached) !== JSON.stringify(lastValue)) {
+        const clientCount = io.sockets.adapter.rooms.get('news')?.size || 0;
+        if (clientCount > 0) {
+          io.to('news').emit('news', cached);
+          lastPushedValues.set('news:all', cached);
+          console.log(`[WS] 🔄 Backup push: news (${clientCount} clients)`);
+        }
+      }
     }
   } catch (error) {
-    console.error('[WS] ⚠️  Error pushing news:', error.message);
+    console.error('[WS] ⚠️  Error in backup push for news:', error.message);
   }
 }, 2 * 60 * 1000); // 2 minutes - matches cache TTL
 

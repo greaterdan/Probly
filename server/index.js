@@ -65,9 +65,20 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // Create HTTP server and Socket.IO server
 const httpServer = createServer(app);
+// Parse FRONTEND_URL for Socket.IO (can be comma-separated or single URL)
+const getSocketIOOrigins = () => {
+  if (process.env.FRONTEND_URL) {
+    // If comma-separated, split and trim
+    return process.env.FRONTEND_URL.split(',').map(o => o.trim());
+  }
+  return isProduction 
+    ? ['https://miramaps.io', 'https://www.miramaps.io'] 
+    : ['http://localhost:5173', 'http://localhost:3000'];
+};
+
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || (isProduction ? ['https://mira.tech', 'https://probly.tech'] : ['http://localhost:5173', 'http://localhost:3000']),
+    origin: getSocketIOOrigins(),
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -176,8 +187,35 @@ app.get('/api/csrf-token', (req, res) => {
 
 // Security: CORS - restrict to specific origins instead of wildcard
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:5174', 'https://mira.tech', 'https://probly.tech']; // Default for development
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:5174', 'https://miramaps.io', 'https://www.miramaps.io']; // Default for development
+
+// Helper function to normalize origin (remove trailing slash)
+function normalizeOrigin(origin) {
+  if (!origin) return null;
+  return origin.replace(/\/$/, '');
+}
+
+// Helper function to check if origin matches allowed origins (handles www variants and trailing slashes)
+function isOriginAllowed(origin, allowedList) {
+  if (!origin) return false;
+  const normalizedOrigin = normalizeOrigin(origin).toLowerCase();
+  
+  // Check each allowed origin
+  for (const allowed of allowedList) {
+    const normalizedAllowed = normalizeOrigin(allowed).toLowerCase();
+    
+    // Exact match
+    if (normalizedOrigin === normalizedAllowed) return true;
+    
+    // Check www variants (www.miramaps.io <-> miramaps.io)
+    const originWithoutWww = normalizedOrigin.replace(/^https?:\/\/(www\.)?/, '');
+    const allowedWithoutWww = normalizedAllowed.replace(/^https?:\/\/(www\.)?/, '');
+    if (originWithoutWww === allowedWithoutWww) return true;
+  }
+  
+  return false;
+}
 
 // CORS configuration - allow healthcheck without origin check
 // CRITICAL: When credentials are included, we MUST return the specific origin, not '*'
@@ -199,25 +237,27 @@ app.use(cors({
       // Allow Railway internal origins (for healthchecks and internal requests)
       const isRailwayOrigin = origin.includes('.up.railway.app') || origin.includes('.railway.app');
       
-      if (allowedOrigins.indexOf(origin) !== -1 || isRailwayOrigin) {
-        // Return the actual origin (not true) when credentials are included
-        callback(null, origin);
-    } else {
-        // Only log CORS blocks occasionally (every 100th) to reduce log spam
-        if (Math.random() < 0.01) {
-          console.warn(`[CORS] Blocked request from origin: ${origin} (sampling 1% of blocks)`);
-        }
-      callback(new Error('Not allowed by CORS'));
-      }
-    } else {
-      // Development: Allow localhost and configured origins
-      if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      if (isOriginAllowed(origin, allowedOrigins) || isRailwayOrigin) {
         // Return the actual origin (not true) when credentials are included
         callback(null, origin);
       } else {
-        // Only log CORS blocks occasionally (every 100th) to reduce log spam
-        if (Math.random() < 0.01) {
-          console.warn(`[CORS] Blocked request from origin: ${origin} (sampling 1% of blocks)`);
+        // Log blocked requests (increased sampling for debugging)
+        if (Math.random() < 0.1) {
+          console.warn(`[CORS] Blocked request from origin: ${origin}`);
+          console.warn(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
+        }
+        callback(new Error('Not allowed by CORS'));
+      }
+    } else {
+      // Development: Allow localhost and configured origins
+      if (isOriginAllowed(origin, allowedOrigins) || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+        // Return the actual origin (not true) when credentials are included
+        callback(null, origin);
+      } else {
+        // Log blocked requests (increased sampling for debugging)
+        if (Math.random() < 0.1) {
+          console.warn(`[CORS] Blocked request from origin: ${origin}`);
+          console.warn(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
         }
         callback(new Error('Not allowed by CORS'));
       }
@@ -367,10 +407,10 @@ app.use(passport.session());
 // Google OAuth Strategy
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-// Determine callback URL - use environment variable if set, otherwise default to probly.tech
+// Determine callback URL - use environment variable if set, otherwise default to miramaps.io
 // CRITICAL: This must match EXACTLY what's configured in Google Cloud Console
-// Default to probly.tech to match the OAuth client configuration
-const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || (isProduction ? 'https://probly.tech/api/auth/google/callback' : 'http://localhost:3002/api/auth/google/callback');
+// Default to miramaps.io to match the OAuth client configuration
+const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || (isProduction ? 'https://miramaps.io/api/auth/google/callback' : 'http://localhost:3002/api/auth/google/callback');
 
 // Log the callback URL for debugging
 if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
